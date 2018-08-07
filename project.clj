@@ -6,6 +6,7 @@
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [org.clojure/core.async "0.4.474"]
                  [org.clojure/math.numeric-tower "0.0.4"]
+                 [org.clojure/tools.cli "0.3.7"]
                  [clj-gatling "0.13.0"]
                  ;; [clojider "0.5.0"]
                  ]

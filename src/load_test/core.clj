@@ -4,6 +4,7 @@
             [clj-time.format :as f]
             [clojure.core.async :as a]
             [clojure.math.numeric-tower :as math]
+            [clojure.tools.cli :as cli]
             [org.httpkit.client :as http]))
 
 (def test-website "http://website.staging.trustedshops.kermit.cloud/")
@@ -55,12 +56,33 @@
                            :steps [{:name "GET request"
                                     :request request}]}]}
              {:concurrency concurrency
-              :concurrency-distribution ramp-up-and-down
+              :concurrency-distribution
+              ;; (fn [_ _] 0.5)
+              ramp-up-and-down
               :timeout-in-ms 10000
               :duration duration})]
        (let [end-time (t/now)]
          (println (str "Ended at " (f/unparse (f/formatters :hour-minute-second) end-time)))
          result)))))
 
+(def cli-options
+  [["-c" "--concurrency CONCURRENCY" "Concurrency"
+    :default 10000
+    :parse-fn #(Integer/parseInt %)]
+   ["-d" "--duration DURATION" "Duration"
+    :default (* 60 3)
+    :parse-fn #(Integer/parseInt %)]
+   ["-a" "--asynch" "Asynch?"
+    :default true
+    :parse-fn #(Boolean/parseBoolean %)]
+   ["-h" "--help"]])
+
 (defn -main [& args]
-  (gatling "http://website.staging.trustedshops.kermit.cloud/" 2000))
+  (let [opts (cli/parse-opts args cli-options)]
+    (gatling (:concurrency (:options opts))
+             (:duration (:options opts))
+             (:asynch (:options opts))))
+  ;;(apply gatling args)
+  )
+
+;; (gatling 20000 (* 60 6) true)
