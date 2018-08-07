@@ -7,7 +7,7 @@
             [clojure.tools.cli :as cli]
             [org.httpkit.client :as http]))
 
-(def test-website "http://website.staging.trustedshops.kermit.cloud/")
+(def default-website "http://website.staging.trustedshops.kermit.cloud/")
 
 (defn get-request
   ([website]
@@ -35,35 +35,44 @@
     0.1
     ))
 
+(defn half-ramp [progress context]
+  ;; (if-not (empty? context) (println context))
+  (if (< progress 0.5)
+    0.1
+    1))
 
+(defn straight-ramp [progress _]
+  (print (str progress ";"))
+  progress)
 
 (defn gatling
-  ([concurrency]
-   (gatling concurrency 6))
-  ([concurrency seconds]
-   (gatling concurrency seconds false))
-  ([concurrency seconds async?]
-   (let [website test-website
-         duration (t/seconds seconds)
-         request (get-request website async?)
-         start-time (t/now)]
-     (println (str "Started at " (f/unparse (f/formatters :hour-minute-second) start-time)))
-     (println (str "Ending at ~" (f/unparse (f/formatters :hour-minute-second) (t/plus start-time duration))))
-     (let [result 
-           (g/run
-             {:name "Simulation"
-              :scenarios [{:name "GET scenario"
-                           :steps [{:name "GET request"
-                                    :request request}]}]}
-             {:concurrency concurrency
-              :concurrency-distribution
-              ;; (fn [_ _] 0.5)
-              ramp-up-and-down
-              :timeout-in-ms 10000
-              :duration duration})]
-       (let [end-time (t/now)]
-         (println (str "Ended at " (f/unparse (f/formatters :hour-minute-second) end-time)))
-         result)))))
+  [& {:keys [website concurrency duration async?]
+      :or {website default-website
+           concurrency 10000
+           duration 12 ;; (* 60 4)
+           async? true}}]
+  (let [seconds (t/seconds duration)
+        request (get-request website async?)
+        start-time (t/now)]
+    (println (str "Started at " (f/unparse (f/formatters :hour-minute-second) start-time)))
+    (println (str "Ending at ~" (f/unparse (f/formatters :hour-minute-second) (t/plus start-time seconds))))
+    (let [result 
+          (g/run
+            {:name "Simulation"
+             :scenarios [{:name "GET scenario"
+                          :steps [{:name "GET request"
+                                   :request request}]}]}
+            {:concurrency concurrency
+             :concurrency-distribution
+             straight-ramp
+             ;; half-ramp
+             ;; (fn [_ _] 0.5)
+             ;; ramp-up-and-down
+             :timeout-in-ms 10000
+             :duration seconds})]
+      (let [end-time (t/now)]
+        (println (str "Ended at " (f/unparse (f/formatters :hour-minute-second) end-time)))
+        result))))
 
 (def cli-options
   [["-c" "--concurrency CONCURRENCY" "Concurrency"
@@ -79,10 +88,4 @@
 
 (defn -main [& args]
   (let [opts (cli/parse-opts args cli-options)]
-    (gatling (:concurrency (:options opts))
-             (:duration (:options opts))
-             (:asynch (:options opts))))
-  ;;(apply gatling args)
-  )
-
-;; (gatling 20000 (* 60 6) true)
+    (gatling (:options opts))))
