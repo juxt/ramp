@@ -1,9 +1,11 @@
 Parameters:
   TargetUrl:
-    Description: URL to test. Don't end with a /
+    Description: URL or IP to test. Do not end with a /
     Type: String
+    AllowedPattern: '^(http(s?):\/\/)?(((www\.)?+[a-zA-Z0-9\.\-\_]+(\.[a-zA-Z]{2,3})+[a-zA-Z0-9\_\-\.\?\%\#\&\=]+)|(\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b))([a-zA-Z0-9\_\-\.\?\%\#\&\=]*[a-zA-Z0-9\_\-\.\?\%\#\&\=]+)?$'
+    ConstraintDescription: should be a valid URL or IP address that doesn't end with a /
   PeakUsers:
-    Default: 2000
+    Default: 10000
     Description: Max number of concurrent users
     Type: Number
   Duration:
@@ -14,18 +16,35 @@ Parameters:
     Description: Name of an S3 bucket to upload test results to
     Type: String
   SelfDestruct:
-    Default: false
-    Description: If "true", the instance will terminate itself after the test (default false)
+    Default: true
+    Description: If "true", the stack will delete itself after completing the test
     Type: String
   SSHKeyName:
-    Description: Name of an existing EC2 KeyPair to enable SSH access to the instance
+    Description: (optional) Name of an existing EC2 KeyPair to enable SSH access to the instance
     Type: String
-    MinLength: '1'
     MaxLength: '255'
     AllowedPattern: '[\x20-\x7E]*'
     ConstraintDescription: can contain only ASCII characters
+Conditions:
+  HasKeyName: !Not [ !Equals [ "", !Ref SSHKeyName ] ]
 Resources:
-  BucketUseRole:
+  LoadTestSG:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupName: LoadTestSG
+      GroupDescription: 'Accept requests for SSH and ping'
+      SecurityGroupIngress:
+        - Description: ping
+          IpProtocol: icmp
+          CidrIp: 0.0.0.0/0
+          FromPort: '8'
+          ToPort: '-1'
+        - Description: SSH
+          IpProtocol: tcp
+          CidrIp: 0.0.0.0/0
+          FromPort: '22'
+          ToPort: '22'
+  LoadTestRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -55,13 +74,47 @@ Resources:
                   - "s3:GetObject"
                   - "s3:DeleteObject"
                 Resource: !Join [ "", [ "arn:aws:s3:::", !Ref BucketName, "/*" ] ]
-      RoleName: "BucketUseRole"
+        -
+          PolicyName: "SelfDestruct"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                - "cloudformation:DeleteStack"
+                Resource: !Ref "AWS::StackId"
+              - Effect: Allow
+                Action: [ "ec2:TerminateInstances" ]
+                Resource: "*"
+                Condition:
+                  StringEquals:
+                    "ec2:ResourceTag/aws:cloudformation:stack-id": !Ref AWS::StackId
+              - Effect: Allow
+                Action: [ "ec2:DescribeInstances" ]
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                - "iam:RemoveRoleFromInstanceProfile"
+                - "iam:DeleteInstanceProfile"
+                Resource: !Sub "arn:aws:iam::${AWS::AccountId}:instance-profile/*"
+              - Effect: Allow
+                Action:
+                - "iam:DeleteRole"
+                - "iam:DeleteRolePolicy"
+                Resource: !Sub "arn:aws:iam::${AWS::AccountId}:role/LoadTestRole"
+              - Effect: Allow
+                Action:
+                - "ec2:DeleteSecurityGroup"
+                - "ec2:RevokeSecurityGroupEgress"
+                - "ec2:RevokeSecurityGroupIngress"
+                Resource: "arn:aws:ec2:*:*:security-group/*"
+      RoleName: "LoadTestRole"
   InstanceProfile:
-    DependsOn: BucketUseRole
+    DependsOn: LoadTestRole
     Type: AWS::IAM::InstanceProfile
     Properties:
       Roles:
-        - "BucketUseRole"
+        - "LoadTestRole"
   TestBox:
     Type: AWS::EC2::Instance
     Properties:
@@ -69,7 +122,9 @@ Resources:
       ImageId: ami-7c4f7097
       InstanceInitiatedShutdownBehavior: terminate
       InstanceType: t2.large
-      KeyName: !Ref SSHKeyName
+      KeyName: !If [ HasKeyName, !Ref SSHKeyName, !Ref 'AWS::NoValue' ]
+      SecurityGroups:
+        - !Ref LoadTestSG
       Tags:
         - Key: Name
           Value: load-test
@@ -77,13 +132,6 @@ Resources:
         Fn::Base64:
           !Sub |
             #!/bin/bash
-
-            url=\"${TargetUrl}\"
-            peakUsers=${PeakUsers}
-            totalDuration=${Duration}
-            bucketName=${BucketName}
-            selfDestruct=${SelfDestruct}
-
             yum install -y java-1.8.0
             echo "1" > /proc/sys/net/ipv4/tcp_tw_reuse
             echo "16000   64000" > /proc/sys/net/ipv4/ip_local_port_range
@@ -96,24 +144,24 @@ Resources:
             rm -rf user-files/simulations/
             mkdir user-files/simulations/
 
-            cat << EOF >  user-files/simulations/KermitSimulation.scala
+            cat << EOF >  user-files/simulations/LoadSimulation.scala
             package computerdatabase
             import io.gatling.core.Predef._
             import io.gatling.http.Predef._
             import scala.concurrent.duration._
 
             object Params {
-            val peakUsers = $peakUsers
-            val totalDuration = $totalDuration
-            val url = $url}
+            val peakUsers = ${PeakUsers}
+            val totalDuration = ${Duration}
+            val url = "${TargetUrl}"}
 
             object Get {
-              val get = repeat(Params.totalDuration * 3/5, "n") {
+              val get = repeat(Params.totalDuration * 2/3, "n") {
                 exec(http("Get")
                   .get("/"))
                   .pause(1)}}
 
-            class KermitSimulation extends Simulation {
+            class LoadSimulation extends Simulation {
               val httpConf = http
                 .baseURL(Params.url)
                 .acceptHeader("text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
@@ -131,8 +179,8 @@ Resources:
             EOF
 
             ./bin/gatling.sh -m > results/gatling.out
-            aws s3 cp results/kermitsimulation-* s3://$bucketName/
+            aws s3 cp --recursive results/ s3://${BucketName}/
 
-            if [ $selfDestruct == true ]; then
-                shutdown -P now
+            if [ ${SelfDestruct} == true ]; then
+                aws cloudformation delete-stack --stack-name ${AWS::StackId} --region ${AWS::Region}
             fi
