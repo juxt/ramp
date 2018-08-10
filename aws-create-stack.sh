@@ -9,6 +9,6 @@ aws cloudformation create-stack \
     ParameterKey=TargetUrl,ParameterValue=$1 \
     ParameterKey=PeakUsers,ParameterValue=10000 \
     ParameterKey=Duration,ParameterValue=720 \
-    ParameterKey=BucketName,ParameterValue=juxthug-load-test \
+    ParameterKey=BucketName,ParameterValue=$2 \
     ParameterKey=SelfDestruct,ParameterValue=true \
     ParameterKey=SSHKeyName,ParameterValue=
