@@ -7,7 +7,7 @@ aws cloudformation create-stack \
     --capabilities CAPABILITY_NAMED_IAM \
     --parameters \
     ParameterKey=TargetUrl,ParameterValue=$1 \
-    ParameterKey=PeakUsers,ParameterValue=10000 \
+    ParameterKey=PeakUsers,ParameterValue=3000 \
     ParameterKey=Duration,ParameterValue=720 \
     ParameterKey=BucketName,ParameterValue=$2 \
     ParameterKey=SelfDestruct,ParameterValue=true \

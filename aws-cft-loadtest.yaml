@@ -5,11 +5,11 @@ Parameters:
     AllowedPattern: '^(http(s?):\/\/)?(((www\.)?+[a-zA-Z0-9\.\-\_]+(\.[a-zA-Z]{2,3})+[a-zA-Z0-9\_\-\.\?\%\#\&\=]+)|(\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b))([a-zA-Z0-9\_\-\.\?\%\#\&\=]*[a-zA-Z0-9\_\-\.\?\%\#\&\=]+)?$'
     ConstraintDescription: should be a valid URL or IP address that doesn't end with a /
   PeakUsers:
-    Default: 10000
+    Default: 3000
     Description: Max number of concurrent users
     Type: Number
   Duration:
-    Default: 360
+    Default: 720
     Description: Total duration of test in sec. 1/3 will be ramp-up, 1/3 peak, 1/3 ramp-down
     Type: Number
   BucketName:
@@ -156,7 +156,7 @@ Resources:
             val url = "${TargetUrl}"}
 
             object Get {
-              val get = repeat(Params.totalDuration * 2/3, "n") {
+              val get = repeat(Params.totalDuration * 3/5, "n") {
                 exec(http("Get")
                   .get("/"))
                   .pause(1)}}
