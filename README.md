@@ -8,9 +8,9 @@ It's fairly easy to adapt to more complex use cases if you provide your own .sca
 
 ## Usage
 
-You will need an S3 bucket. (Optionally, give the bucket public view permissions to view the results html as a static website.)
+You will need an S3 bucket. (Optionally, [give the bucket public view permissions](https://docs.aws.amazon.com/AmazonS3/latest/dev/WebsiteAccessPermissionsReqd.html) to view the results html as a static website.)
 
-Go to the AWS CloudFormation console. Click "Create Stack". Upload the .yaml file. Fill in the parameters as instructed.
+Go to the [AWS CloudFormation console](https://eu-central-1.console.aws.amazon.com/cloudformation/home). Click "Create Stack". Upload the .yaml file. Fill in the parameters as instructed.
 
 Alternatively, run the shell script (edit as needed) to launch the stack via AWS Command Line Interface. You will need AWS CLI [installed](https://docs.aws.amazon.com/cli/latest/userguide/installing.html) and [configured](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html).
 
