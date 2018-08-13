@@ -1,4 +1,4 @@
-# Ramping Load Test
+# ramp - Ramping Load Test
 
 A tiny AWS CloudFormation stack that performs basic load testing using [Gatling](https://gatling.io/).
 
