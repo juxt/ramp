@@ -12,6 +12,6 @@ You will need an S3 bucket. (Optionally, [give the bucket public view permission
 
 Go to the [AWS CloudFormation console](https://eu-central-1.console.aws.amazon.com/cloudformation/home). Click "Create Stack". Upload the .yaml file. Fill in the parameters as instructed.
 
-Alternatively, run the shell script (edit as needed) to launch the stack via AWS Command Line Interface. You will need AWS CLI [installed](https://docs.aws.amazon.com/cli/latest/userguide/installing.html) and [configured](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html).
+Alternatively, run the .sh script (edit as needed) to launch the stack via AWS Command Line Interface. You will need AWS CLI [installed](https://docs.aws.amazon.com/cli/latest/userguide/installing.html) and [configured](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html).
 
-    $ ./aws-create-stack http://www.google.com my-bucket-name
+    $ ./aws-create-stack.sh http://www.google.com my-bucket-name
