@@ -9,8 +9,11 @@ It's fairly easy to adapt to more complex use cases if you provide your own .sca
 ## Usage
 
 . [Install](https://docs.aws.amazon.com/cli/latest/userguide/installing.html) and [configure](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html) the Amazon Command Line Interface.
+
 . Create an S3 bucket (if you don't already have one).
+
 .. Optionally, [give the bucket public view permissions](https://docs.aws.amazon.com/AmazonS3/latest/dev/WebsiteAccessPermissionsReqd.html) to view the results html as a static website.
+
 . Run the `aws-create-stack.sh` script with your target url and bucket name as parameters.
 
     $ ./aws-create-stack.sh http://www.google.com my-bucket-name
