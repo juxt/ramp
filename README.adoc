@@ -4,7 +4,7 @@ A tiny AWS CloudFormation stack that performs basic load testing using https://g
 
 It will create (with ramp-up) a number of users who each connect to a URL and send a GET request every second. It will upload detailed test results to an AWS S3 bucket of your choice, and then the stack will delete itself.
 
-It's fairly easy to adapt to more complex use cases if you provide your own .scala [Gatling simulation script](https://gatling.io/documentation/).
+It's fairly easy to adapt to more complex use cases if you provide your own .scala https://gatling.io/documentation/[Gatling simulation script].
 
 ## Usage
 
