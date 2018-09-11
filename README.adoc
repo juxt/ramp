@@ -14,7 +14,7 @@ It can be customised for more complex use cases.
 
 . Run the `aws-create-stack.sh` script with `-t your-target-url` as parameter, plus any other parameter you need. The list of valid parameters is shown on `./aws-create-stack.sh -h`
 
-    $ ./aws-create-stack.sh -t http://www.example.com -b my-bucket-name -p -v
+    $ ./aws-create-stack.sh -t http://www.example.com -b my-bucket-name -p -s -v
 
 ### Manually on the AWS console
 
