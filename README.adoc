@@ -18,9 +18,9 @@ It can be customised for more complex use cases.
 
 ### Manually on the AWS console
 
-. Create an https://s3.console.aws.amazon.com/s3/home?region=eu-west-1[S3 bucket] (if you don't already have one). Optionally, give it https://docs.aws.amazon.com/AmazonS3/latest/dev/WebsiteAccessPermissionsReqd.html[website access permissions].
+. Create an https://s3.console.aws.amazon.com/s3/home?region=eu-west-1[S3 bucket] (if you don't already have one). Give it https://docs.aws.amazon.com/AmazonS3/latest/dev/WebsiteAccessPermissionsReqd.html[website access permissions].
 
-. Upload `aws-userdata.sh` to that bucket and give it public read access.
+. Upload `aws-userdata.sh` and `LoadSimulation.scala` to that bucket.
 
 . In https://eu-west-1.console.aws.amazon.com/cloudformation/home?region=eu-west-1#/[CloudFormation], click "Create Stack".
 
