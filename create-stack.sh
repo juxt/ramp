@@ -39,13 +39,11 @@ function vecho() {
 function createBucket() {
     vecho "Uploading files to setup bucket $BucketName..."
 
-    if [ ! -z $(aws s3api head-bucket --bucket $BucketName) ]; then
-       aws s3api create-bucket \
-           --bucket $BucketName \
-           --create-bucket-configuration \
-           LocationConstraint=$Region \
-           >/dev/null
-    fi
+    aws s3api create-bucket \
+        --bucket $BucketName \
+        --create-bucket-configuration \
+        LocationConstraint=$Region \
+        >/dev/null
     
     aws s3 cp aws-userdata.sh s3://$BucketName \
         --acl public-read \
