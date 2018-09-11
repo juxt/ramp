@@ -12,9 +12,9 @@ It can be customised for more complex use cases.
 
 . https://docs.aws.amazon.com/cli/latest/userguide/installing.html[Install] and https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html[configure] the Amazon Command Line Interface.
 
-. Run the `aws-create-stack.sh` script with `-t your-target-url` as parameter, plus any other parameters you need. The list of valid parameters is shown on `./aws-create-stack.sh -h`
+. Run the `create-stack.sh` script with `-t your-target-url` as parameter, plus any other parameters you need. The list of valid parameters is shown on `./create-stack.sh -h`
 
-    $ ./aws-create-stack.sh -t http://www.example.com -b my-bucket-name -p -s -v
+    $ ./create-stack.sh -t http://www.example.com -b my-bucket-name -p -s -v
 
 ### Manually on the AWS console
 
@@ -24,7 +24,7 @@ It can be customised for more complex use cases.
 
 . In https://eu-west-1.console.aws.amazon.com/cloudformation/home?region=eu-west-1#/[CloudFormation], click "Create Stack".
 
-. Click "Upload a template to Amazon S3" -> "Browse" and upload `aws-cft-loadtest.yaml`, then click "Next".
+. Click "Upload a template to Amazon S3" -> "Browse" and upload `aws-cft-ramp.yaml`, then click "Next".
 
 . Fill in the parameters as instructed.
 
