@@ -38,11 +38,14 @@ function vecho() {
 # Steps of the stack creation
 function createBucket() {
     vecho "Uploading files to setup bucket $BucketName..."
-    aws s3api create-bucket \
-        --bucket $BucketName \
-        --create-bucket-configuration \
-        LocationConstraint=$Region \
-        >/dev/null
+
+    if [ ! -z $(aws s3api head-bucket --bucket $BucketName) ]; then
+       aws s3api create-bucket \
+           --bucket $BucketName \
+           --create-bucket-configuration \
+           LocationConstraint=$Region \
+           >/dev/null
+    fi
     
     aws s3 cp aws-userdata.sh s3://$BucketName \
         --acl public-read \
