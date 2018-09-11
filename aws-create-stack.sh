@@ -136,4 +136,4 @@ fi
 # deleteOldStack # should be an option, too risky otherwise
 createBucket
 createStack
-vecho "Results will be uploaded to $BucketName as soon as the test is complete"
+vecho "Results will be uploaded to https://s3.console.aws.amazon.com/s3/buckets/$BucketName/ as soon as the test is complete"
