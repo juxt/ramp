@@ -119,7 +119,7 @@ Resources:
     Type: AWS::EC2::Instance
     Properties:
       IamInstanceProfile: !Ref InstanceProfile
-      ImageId: ami-7c4f7097
+      ImageId: ami-047bb4163c506cd98
       InstanceInitiatedShutdownBehavior: terminate
       InstanceType: t2.large
       KeyName: !If [ HasKeyName, !Ref SSHKeyName, !Ref 'AWS::NoValue' ]
@@ -129,58 +129,9 @@ Resources:
         - Key: Name
           Value: load-test
       UserData:
-        Fn::Base64:
-          !Sub |
-            #!/bin/bash
-            yum install -y java-1.8.0
-            echo "1" > /proc/sys/net/ipv4/tcp_tw_reuse
-            echo "16000   64000" > /proc/sys/net/ipv4/ip_local_port_range
-            cd /
-            wget https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/2.3.1/gatling-charts-highcharts-bundle-2.3.1-bundle.zip
-            unzip gatling-charts-highcharts-bundle-2.3.1-bundle.zip
-            rm -f gatling-charts-highcharts-bundle-2.3.1-bundle.zip
-            mv gatling-charts-highcharts-bundle-2.3.1/ gatling/
-            cd gatling/
-            rm -rf user-files/simulations/
-            mkdir user-files/simulations/
-
-            cat << EOF >  user-files/simulations/LoadSimulation.scala
-            package computerdatabase
-            import io.gatling.core.Predef._
-            import io.gatling.http.Predef._
-            import scala.concurrent.duration._
-
-            object Params {
-            val peakUsers = ${PeakUsers}
-            val totalDuration = ${Duration}
-            val url = "${TargetUrl}"}
-
-            object Get {
-              val get = repeat(Params.totalDuration * 3/5, "n") {
-                exec(http("Get")
-                  .get("/"))
-                  .pause(1)}}
-
-            class LoadSimulation extends Simulation {
-              val httpConf = http
-                .baseURL(Params.url)
-                .acceptHeader("text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
-                .doNotTrackHeader("1")
-                .acceptLanguageHeader("en-US,en;q=0.5")
-                .acceptEncodingHeader("gzip, deflate")
-                .userAgentHeader("Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0")
-            val headers_10 = Map("Content-Type" -> "application/x-www-form-urlencoded")
-            val scn = scenario("Single GET").exec(Get.get)
-
-            setUp(scn.inject(
-              // atOnceUsers(Params.peakUsers)
-              rampUsers(Params.peakUsers) over (Params.totalDuration/3 seconds)
-            )).protocols(httpConf)}
-            EOF
-
-            ./bin/gatling.sh -m > results/gatling.out
-            aws s3 cp --recursive results/ s3://${BucketName}/
-
-            if [ ${SelfDestruct} == true ]; then
-                aws cloudformation delete-stack --stack-name ${AWS::StackId} --region ${AWS::Region}
-            fi
+        Fn::Base64: !Sub |
+          #!bin/bash
+          wget http://${BucketName}.s3.amazonaws.com/aws-userdata.sh
+          chmod +x aws-userdata.sh
+          ./aws-userdata.sh ${TargetUrl} ${PeakUsers} ${Duration} ${BucketName} ${SelfDestruct} ${AWS::StackId} ${AWS::Region}
+          rm aws-userdata.sh

@@ -1,0 +1,35 @@
+# ramp - Ramping load test
+
+A tiny AWS CloudFormation stack that performs basic load testing using https://gatling.io/[Gatling].
+
+It will create (with ramp-up) a number of users who each connect to a URL and send a GET request every second. It will upload detailed test results to an AWS S3 bucket of your choice, and then the stack will delete itself.
+
+It can be customised for more complex use cases.
+
+## How to use
+
+### By command line
+
+. https://docs.aws.amazon.com/cli/latest/userguide/installing.html[Install] and https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html[configure] the Amazon Command Line Interface.
+
+. Run the `create-stack.sh` script with `-t your-target-url` as parameter, plus any other parameters you need. The list of valid parameters is shown on `./create-stack.sh -h`
+
+    $ ./create-stack.sh -t http://www.example.com -b my-bucket-name -p -s -v
+
+### Manually on the AWS console
+
+. Create an https://s3.console.aws.amazon.com/s3/home?region=eu-west-1[S3 bucket] (if you don't already have one). Optionally, give it https://docs.aws.amazon.com/AmazonS3/latest/dev/WebsiteAccessPermissionsReqd.html[website access permissions].
+
+. Upload `aws-userdata.sh` to that bucket and give it public read access.
+
+. In https://eu-west-1.console.aws.amazon.com/cloudformation/home?region=eu-west-1#/[CloudFormation], click "Create Stack".
+
+. Click "Upload a template to Amazon S3" -> "Browse" and upload `aws-cft-ramp.yaml`, then click "Next".
+
+. Fill in the parameters as instructed.
+
+## Customisation
+
+* Currently, the template only works on eu-west-1. If you want to use a different region, you'll have to change the AMI to an Amazon Linux AMI that's valid in the new region.
+
+* By default, the script merely sends GET requests to a target url. But it can provide much more complex use cases if you replace `LoadSimulation.scala` with your own https://gatling.io/documentation/[Gatling simulation script].
