@@ -2,7 +2,7 @@ Parameters:
   TargetUrl:
     Description: URL to test. Precede with http:// or https://. Do not end with a /
     Type: String
-    AllowedPattern: '^(http(s?):\/\/)((www\.)?+[a-zA-Z0-9\.\-\_]+(\.[a-zA-Z]{2,3})+[a-zA-Z0-9\_\-\.\?\%\#\&\=]+)([a-zA-Z0-9\_\-\.\?\%\#\&\=]*[a-zA-Z0-9\_\-\.\?\%\#\&\=]+)?$'
+    AllowedPattern: '^(http(s?):\/\/).*[^\/]'
     ConstraintDescription: should be a valid URL that starts with http:// or https:// and doesn't end with a /
   PeakUsers:
     Default: 3000
