@@ -72,7 +72,7 @@ function createStack() {
     aws cloudformation create-stack \
         --stack-name $StackName \
         --region $Region \
-        --template-body file://aws-cft-loadtest.yaml \
+        --template-body file://aws-cft-ramp.yaml \
         --capabilities CAPABILITY_NAMED_IAM \
         --parameters \
         ParameterKey=TargetUrl,ParameterValue=$TargetUrl \
