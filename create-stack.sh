@@ -5,6 +5,7 @@ PeakUsers=3000
 Duration=360
 BucketName=ramping-load-test-$(uuidgen)
 BucketWebsiteAccess=false
+ReplaceStack=false
 SelfDestruct=false
 StackName=ramping-load-test
 Region=eu-west-1
@@ -13,14 +14,15 @@ Verbose=false
 function usage() {
     printf "
 Options:\n\
-  -b <string>   Name of an S3 bucket to upload test results to. Will be created if needed\n\
-  -d <int>      Total duration of the test in seconds\n\
+  -b <string>   Bucket: mame of an S3 bucket to upload test results to. Will be created if needed\n\
+  -d <int>      Duration: total duration of the test in seconds\n\
   -h            Help\n\
   -n <string>   Name of the stack\n\
-  -p            Give the results S3 bucket public-read permissions\n\
-  -s            Delete the stack once testing is complete\n\
+  -p            Public: give the results S3 bucket public-read permissions\n\
+  -r            Replace: first delete any existing stack with the same name
+  -s            Self-destruct: delete the stack once testing is complete\n\
   -t <string>   MANDATORY - Target url. Must start with http:// or https:// and end without a /\n\
-  -u <int>      Peak number of concurrent users\n\
+  -u <int>      Users: peak number of concurrent users\n\
   -v            Verbose: prints details of the stack launch\n"
 }
 
@@ -95,7 +97,7 @@ function createStack() {
 
 ############################################
 # Arguments parsing
-while getopts ":b:d:hn:pst:u:v" opt; do
+while getopts ":b:d:hn:prst:u:v" opt; do
     case "${opt}" in
         b )
             BucketName=$OPTARG;;
@@ -108,6 +110,8 @@ while getopts ":b:d:hn:pst:u:v" opt; do
             StackName=$OPTARG;;
         p )
             BucketWebsiteAccess=true;;
+        r )
+            ReplaceStack=true;;
         s )
             SelfDestruct=true;;
         t )
@@ -133,7 +137,9 @@ fi
 
 ############################################
 # Main
-# deleteOldStack # should be an option, too risky otherwise
+if [ $ReplaceStack == true ]; then
+    deleteOldStack
+fi
 createBucket
 createStack
 vecho "Results will be uploaded to https://s3.console.aws.amazon.com/s3/buckets/$BucketName/ as soon as the test is complete"
