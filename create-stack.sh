@@ -8,6 +8,7 @@ BucketWebsiteAccess=false
 ReplaceStack=false
 SelfDestruct=false
 StackName=ramping-load-test
+SSHKeyName=
 Region=eu-west-1
 Verbose=false
 
@@ -17,6 +18,7 @@ Options:\n\
   -b <string>   Bucket: mame of an S3 bucket to upload test results to. Will be created if needed\n\
   -d <int>      Duration: total duration of the test in seconds\n\
   -h            Help\n\
+  -k <string>   Key: name of an existing EC2 KeyPair to enable SSH access to the instance
   -n <string>   Name of the stack\n\
   -p            Public: give the results S3 bucket public-read permissions\n\
   -r            Replace: first delete any existing stack with the same name
@@ -83,7 +85,7 @@ function createStack() {
         ParameterKey=Duration,ParameterValue=$Duration \
         ParameterKey=BucketName,ParameterValue=$BucketName \
         ParameterKey=SelfDestruct,ParameterValue=$SelfDestruct \
-        ParameterKey=SSHKeyName,ParameterValue=hugo-load-testing \
+        ParameterKey=SSHKeyName,ParameterValue=$SSHKeyName \
         > /dev/null
 
     aws cloudformation wait stack-create-complete \
@@ -98,7 +100,7 @@ function createStack() {
 
 ############################################
 # Arguments parsing
-while getopts ":b:d:hn:prst:u:v" opt; do
+while getopts ":b:d:hk:n:prst:u:v" opt; do
     case "${opt}" in
         b )
             BucketName=$OPTARG;;
@@ -107,6 +109,8 @@ while getopts ":b:d:hn:prst:u:v" opt; do
         h )
             usage
             exit 0;;
+        k )
+            SSHKeyName=$OPTARG;;
         n )
             StackName=$OPTARG;;
         p )
