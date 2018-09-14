@@ -1,14 +1,14 @@
 # ramp - Ramping load test
 
-A tiny AWS CloudFormation stack that performs basic load testing using https://gatling.io/[Gatling].
+A tiny AWS CloudFormation stack that performs load testing using https://gatling.io/[Gatling].
 
-It will create (with ramp-up) a number of users who each connect to a URL and send a GET request every second. It will upload detailed test results to an AWS S3 bucket of your choice, and then the stack will delete itself.
+It will create (with ramp-up) a number of users who each connect to a URL and send a GET request every second. It will upload detailed test results to an AWS S3 bucket of your choice, and then - optionally - delete itself.
 
 It can be customised for more complex use cases.
 
 ## How to use
 
-### By command line
+### On the command line
 
 . https://docs.aws.amazon.com/cli/latest/userguide/installing.html[Install] and https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html[configure] the Amazon Command Line Interface.
 
@@ -18,7 +18,7 @@ It can be customised for more complex use cases.
 
 ### Manually on the AWS console
 
-. Create an https://s3.console.aws.amazon.com/s3/home?region=eu-west-1[S3 bucket] (if you don't already have one). Give it https://docs.aws.amazon.com/AmazonS3/latest/dev/WebsiteAccessPermissionsReqd.html[website access permissions].
+. Create an https://s3.console.aws.amazon.com/s3/home?region=eu-west-1[S3 bucket] (if you don't already have one). Give it https://docs.aws.amazon.com/AmazonS3/latest/dev/WebsiteAccessPermissionsReqd.html[public read permissions].
 
 . Upload `aws-userdata.sh` and `LoadSimulation.scala` to that bucket.
 
@@ -30,6 +30,6 @@ It can be customised for more complex use cases.
 
 ## Customisation
 
-* Currently, the template only works on eu-west-1. If you want to use a different region, you'll have to change the AMI to an Amazon Linux AMI that's valid in the new region.
+* Currently, the template only works in eu-west-1. If you want to use a different region, you'll have to change the AMI to an Amazon Linux AMI that's valid in the new region.
 
 * By default, the script merely sends GET requests to a target url. But it can provide much more complex use cases if you replace `LoadSimulation.scala` with your own https://gatling.io/documentation/[Gatling simulation script].
