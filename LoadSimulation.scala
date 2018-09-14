@@ -8,11 +8,9 @@ object Params {
   val peakUsers = Integer.getInteger("PeakUsers")
   val duration = Integer.getInteger("Duration").toInt}
 
-object Get {
-  val get = repeat(Params.duration * 3/5, "n") {
-    exec(http("Get")
-      .get("/"))
-      .pause(1)}}
+object Visitor {
+  val frontPage = exec(http("FrontPage")
+    .get("/"))}
 
 class LoadSimulation extends Simulation {
   val httpConf = http
@@ -23,9 +21,14 @@ class LoadSimulation extends Simulation {
     .acceptEncodingHeader("gzip, deflate")
     .userAgentHeader("Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0")
   val headers_10 = Map("Content-Type" -> "application/x-www-form-urlencoded")
-  val scn = scenario("Single GET").exec(Get.get)
 
-  setUp(scn.inject(
+  val visitor = scenario("Refresh front page")
+    .repeat(Params.duration * 3/5, "n") {
+      exec(Visitor.frontPage)
+        .pause(1)}
+    }
+
+  setUp(visitor.inject(
     // atOnceUsers(Params.peakUsers)
     rampUsers(Params.peakUsers) over (Params.duration/3 seconds)
   )).protocols(httpConf)}
