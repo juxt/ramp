@@ -10,8 +10,6 @@ Region=$7
 
 yum remove -y java-1.7.0-openjdk
 yum install -y java-1.8.0
-echo "1" > /proc/sys/net/ipv4/tcp_tw_reuse
-echo "16000   64000" > /proc/sys/net/ipv4/ip_local_port_range
 cd /
 wget https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/2.3.1/gatling-charts-highcharts-bundle-2.3.1-bundle.zip
 unzip gatling-charts-highcharts-bundle-2.3.1-bundle.zip
