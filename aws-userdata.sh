@@ -20,7 +20,12 @@ rm -rf user-files/simulations/
 mkdir user-files/simulations/
 wget -P /gatling/user-files/simulations/ http://$BucketName.s3.amazonaws.com/LoadSimulation.scala
 
+echo "PeakUsers=$PeakUsers
+Duration=$Duration
+TargetUrl=$TargetUrl" > results/params.txt
+
 JAVA_OPTS="-DPeakUsers=$PeakUsers -DDuration=$Duration -DTargetUrl=$TargetUrl" ./bin/gatling.sh -m > results/gatling.out
+
 aws s3 cp --recursive results/ s3://$BucketName/
 
 if [ $SelfDestruct == true ]; then
