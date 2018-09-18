@@ -34,7 +34,7 @@ function vecho() {
 }
 
 function createBucket() {
-    vecho "Creating bucket $BucketName if missing..."
+    vecho "Creating bucket $BucketName..."
     aws s3api create-bucket \
         --bucket $BucketName \
         --create-bucket-configuration \
@@ -115,7 +115,7 @@ function createStack() {
             --acl public-read \
             >/dev/null
     
-    vecho "Creating stack $StackName if missing..."
+    vecho "Creating stack $StackName..."
     aws cloudformation create-stack \
         --stack-name $StackName \
         --region $Region \
