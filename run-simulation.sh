@@ -150,6 +150,10 @@ function runRemoteSimulation() {
     vecho "Starting simulation on remote instance..."
     UserName=$(aws iam get-user --query 'User.UserName' --output text)
     aws iam attach-user-policy --user-name $UserName --policy-arn arn:aws:iam::aws:policy/AmazonSSMFullAccess
+    InstanceId=$(aws ec2 describe-instances \
+                     --query "Reservations[*].Instances[0].InstanceId[]" \
+                     --filters "Name=tag-key,Values=aws:cloudformation:stack-name" "Name=tag-value,Values=ramping-load-test" \
+                     --output=text)
     # aws s3 cp s3://$BucketName/LoadSimulation.scala \
     #     /gatling/user-files/simulations/ \
     #     >/dev/null
