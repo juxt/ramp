@@ -235,6 +235,7 @@ printSimulationResultsLocation
 ##HIGH PRIORITY
 ###Add Gatling directly to the project instead of downloading it
 ###Ability to enter simulation params on command line
+###Direct url to simulation results
 ##LOW PRIORITY
 ###Better folder management in the bucket
 ###Choose which simulation file to run (-s gatling option)
