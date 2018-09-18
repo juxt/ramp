@@ -158,7 +158,7 @@ function runRemoteSimulation() {
     #     /gatling/user-files/simulations/ \
     #     >/dev/null
     # JAVA_OPTS="-DPeakUsers=$PeakUsers -DDuration=$Duration -DTargetUrl=$TargetUrl" /gatling/bin/gatling.sh \
-    #          -s "LoadSimulation" \
+    #          -s "ramp.LoadSimulation" \
     #          -m \
     #          > /gatling/results/gatling.out
     # aws s3 cp --recursive /gatling/results/ s3://$BucketName/
@@ -166,7 +166,7 @@ function runRemoteSimulation() {
         --document-name "AWS-RunShellScript" \
         --document-version "\$DEFAULT" \
         --targets "Key=instanceids,Values=$InstanceId" \
-        --parameters '{"workingDirectory":[""],"executionTimeout":["172800"],"commands":["aws s3 cp s3://$BucketName/LoadSimulation.scala \\"," /gatling/user-files/simulations/ \\"," >/dev/null","JAVA_OPTS=\"-DPeakUsers=$PeakUsers -DDuration=$Duration -DTargetUrl=$TargetUrl\" /gatling/bin/gatling.sh \\"," -s \"LoadSimulation\" \\"," -m \\"," > /gatling/results/gatling.out","aws s3 cp --recursive /gatling/results/ s3://$BucketName/"]}' \
+        --parameters '{"workingDirectory":[""],"executionTimeout":["172800"],"commands":["aws s3 cp s3://'$BucketName'/LoadSimulation.scala \\"," /gatling/user-files/simulations/ \\"," >/dev/null","JAVA_OPTS=\"-DPeakUsers=\'$PeakUsers' -DDuration=\'$Duration' -DTargetUrl=\'$TargetUrl'\" /gatling/bin/gatling.sh \\"," -s \"ramp.LoadSimulation\" \\"," -m \\"," > /gatling/results/gatling.out","aws s3 cp --recursive /gatling/results/ s3://'$BucketName'/"]}' \
         --comment "console test" \
         --timeout-seconds 600 \
         --max-concurrency "50" \
