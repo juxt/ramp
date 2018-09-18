@@ -74,40 +74,6 @@ Resources:
                   - "s3:GetObject"
                   - "s3:DeleteObject"
                 Resource: !Join [ "", [ "arn:aws:s3:::", !Ref BucketName, "/*" ] ]
-        -
-          PolicyName: "SelfDestruct"
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: Allow
-                Action:
-                - "cloudformation:DeleteStack"
-                Resource: !Ref "AWS::StackId"
-              - Effect: Allow
-                Action: [ "ec2:TerminateInstances" ]
-                Resource: "*"
-                Condition:
-                  StringEquals:
-                    "ec2:ResourceTag/aws:cloudformation:stack-id": !Ref AWS::StackId
-              - Effect: Allow
-                Action: [ "ec2:DescribeInstances" ]
-                Resource: "*"
-              - Effect: Allow
-                Action:
-                - "iam:RemoveRoleFromInstanceProfile"
-                - "iam:DeleteInstanceProfile"
-                Resource: !Sub "arn:aws:iam::${AWS::AccountId}:instance-profile/*"
-              - Effect: Allow
-                Action:
-                - "iam:DeleteRole"
-                - "iam:DeleteRolePolicy"
-                Resource: !Sub "arn:aws:iam::${AWS::AccountId}:role/LoadTestRole"
-              - Effect: Allow
-                Action:
-                - "ec2:DeleteSecurityGroup"
-                - "ec2:RevokeSecurityGroupEgress"
-                - "ec2:RevokeSecurityGroupIngress"
-                Resource: "arn:aws:ec2:*:*:security-group/*"
       RoleName: "LoadTestRole"
   InstanceProfile:
     DependsOn: LoadTestRole
