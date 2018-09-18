@@ -26,7 +26,6 @@ class LoadSimulation extends Simulation {
     .repeat(Params.duration * 3/5, "n") {
       exec(Visitor.frontPage)
         .pause(1)}
-    }
 
   setUp(visitor.inject(
     // atOnceUsers(Params.peakUsers)
