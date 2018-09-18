@@ -34,7 +34,7 @@ function vecho() {
 }
 
 function createBucket() {
-    vecho "Creating bucket $BucketName if missing"
+    vecho "Creating bucket $BucketName if missing..."
     aws s3api create-bucket \
         --bucket $BucketName \
         --create-bucket-configuration \
@@ -42,7 +42,7 @@ function createBucket() {
         >/dev/null
     
     if [ $BucketPublicRead == true ]; then
-        "Giving $BucketName public-read permissions"
+        vecho "Giving $BucketName public-read permissions..."
         aws s3api put-bucket-policy \
             --bucket $BucketName \
             --policy "{ \"Version\":\"2012-10-17\", \"Statement\":[{ \"Sid\":\"PublicReadGetObject\", \"Effect\":\"Allow\", \"Principal\": \"*\", \"Action\":[\"s3:GetObject\"], \"Resource\":[\"arn:aws:s3:::$BucketName/*\" ] } ] }"
@@ -63,7 +63,7 @@ function printSimulationResultsLocation() {
 # Run locally
 function runLocally() {
     if [ ! -f "gatling/bin/gatling.sh" ]; then
-        vecho "Downloading Gatling"
+        vecho "Downloading Gatling..."
         rm -rf gatling/
         wget https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/2.3.1/gatling-charts-highcharts-bundle-2.3.1-bundle.zip
         unzip gatling-charts-highcharts-bundle-2.3.1-bundle.zip
@@ -73,10 +73,10 @@ function runLocally() {
         mkdir gatling/user-files/simulations/
     fi
 
-    vecho "Preparing simulation files"
+    vecho "Preparing simulation files..."
     cp LoadSimulation.scala gatling/user-files/simulations/LoadSimulation.scala
     
-    vecho "Running simulation"
+    vecho "Running simulation..."
     if [ $Verbose == true ]; then
         JAVA_OPTS="-DPeakUsers=$PeakUsers -DDuration=$Duration -DTargetUrl=$TargetUrl" ./gatling/bin/gatling.sh \
                  -s "ramp.LoadSimulation" \
@@ -91,7 +91,7 @@ function runLocally() {
 
     if [ $UseBucket == true]; then
         createBucket
-        vecho "Uploading results to $BucketName"
+        vecho "Uploading results to $BucketName..."
         aws s3 cp --recursive gatling/results/ s3://$BucketName/
     fi
 }
@@ -99,7 +99,7 @@ function runLocally() {
 ############################################
 # Run on AWS
 function deleteStack() {
-    vecho "Deleting stack $StackName"
+    vecho "Deleting stack $StackName..."
     aws cloudformation delete-stack \
         --stack-name $StackName \
         >/dev/null
@@ -110,12 +110,12 @@ function deleteStack() {
 }
 
 function createStack() {
-    vecho "Uploading stack setup files to $BucketName"
+    vecho "Uploading stack setup files to $BucketName..."
     aws s3 cp aws-userdata.sh s3://$BucketName \
             --acl public-read \
             >/dev/null
     
-    vecho "Creating stack $StackName if missing"
+    vecho "Creating stack $StackName if missing..."
     aws cloudformation create-stack \
         --stack-name $StackName \
         --region $Region \
@@ -142,12 +142,12 @@ function createStack() {
 
 function runRemoteSimulation() {
     UseBucket=true
-    vecho "Uploading simulation files to $BucketName"
+    vecho "Uploading simulation files to $BucketName..."
     aws s3 cp LoadSimulation.scala s3://$BucketName \
             --acl public-read \
             >/dev/null
 
-    vecho "Starting simulation on remote instance"
+    vecho "Starting simulation on remote instance..."
     UserName=$(aws iam get-user --query 'User.UserName' --output text)
     aws iam attach-user-policy --user-name $UserName --policy-arn arn:aws:iam::aws:policy/AmazonSSMFullAccess
     # aws s3 cp s3://$BucketName/LoadSimulation.scala \
