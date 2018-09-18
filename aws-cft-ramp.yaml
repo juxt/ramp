@@ -81,6 +81,7 @@ Resources:
     Properties:
       Roles:
         - "LoadTestRole"
+        - "AmazonEC2RoleforSSM"
   TestBox:
     Type: AWS::EC2::Instance
     Properties:

@@ -184,6 +184,9 @@ function runRemoteSimulation() {
         --acl public-read \
         >/dev/null
 
+    vecho "Starting simulation on remote instance"
+    UserName=$(aws iam get-user --query 'User.UserName' --output text)
+    aws iam attach-user-policy --user-name $UserName --policy-arn arn:aws:iam::aws:policy/AmazonSSMFullAccess
     # aws s3 cp s3://$BucketName/LoadSimulation.scala \
     #     /gatling/user-files/simulations/ \
     #     >/dev/null
@@ -228,7 +231,6 @@ else
 fi
 printSimulationResultsLocation
 
-#TODO give AmazonSSMFullAccess etc. permissions
 #Improvements:
 ##HIGH PRIORITY
 ###Ability to enter simulation params on command line
