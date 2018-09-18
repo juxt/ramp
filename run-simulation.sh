@@ -171,7 +171,8 @@ function runRemoteSimulation() {
         --max-concurrency "50" \
         --max-errors "0" \
         --output-s3-bucket-name "$BucketName" \
-        --region $Region
+        --region $Region \
+        >/dev/null
 }
 
 function runOnAWS() {
@@ -235,6 +236,7 @@ printSimulationResultsLocation
 ###Add Gatling directly to the project instead of downloading it
 ###Ability to enter simulation params on command line
 ##LOW PRIORITY
+###Better folder management in the bucket
 ###Choose which simulation file to run (-s gatling option)
 ###Add comments to simulation results (-rd gatling option)
 ###Only create-bucket & create-stack (& upload stuff) if they don't exist
