@@ -11,6 +11,20 @@ Region=eu-west-1
 UseBucket=false
 Verbose=false
 
+function usage() {
+    printf "
+Options:\n\
+  -b <string>   Bucket: mame of an S3 bucket to upload test results to. Will be created if it doesn't exist\n\
+  -h            Help\n\
+  -k <string>   Key: name of an existing EC2 KeyPair to enable SSH access to the instance
+  -l            Local: run the simulation locally rather than on AWS
+  -n <string>   Name of the stack\n\
+  -p            Public: give the results S3 bucket public-read permissions\n\
+  -r            Replace: first delete any existing stack with the same name
+  -s            Self-destruct: delete the stack once testing is complete\n\
+  -v            Verbose: prints details of the stack launch\n"
+}
+
 ############################################
 # Utils
 function vecho() {
@@ -46,56 +60,6 @@ function printSimulationResultsLocation() {
 }
 
 ############################################
-# Arguments parsing
-function usage() {
-    printf "
-Options:\n\
-  -b <string>   Bucket: mame of an S3 bucket to upload test results to. Will be created if it doesn't exist\n\
-  -h            Help\n\
-  -k <string>   Key: name of an existing EC2 KeyPair to enable SSH access to the instance
-  -l            Local: run the simulation locally rather than on AWS
-  -n <string>   Name of the stack\n\
-  -p            Public: give the results S3 bucket public-read permissions\n\
-  -r            Replace: first delete any existing stack with the same name
-  -s            Self-destruct: delete the stack once testing is complete\n\
-  -v            Verbose: prints details of the stack launch\n"
-}
-
-function parseArgs() {
-    while getopts ":b:hk:ln:prsv" opt; do
-        case "${opt}" in
-            b )
-                BucketName=$OPTARG
-                UseBucket=true;;
-            h )
-                usage
-                exit 0;;
-            k )
-                SSHKeyName=$OPTARG;;
-            l )
-                Local=true;;
-            n )
-                StackName=$OPTARG;;
-            p )
-                BucketPublicRead=true;;
-            r )
-                ReplaceStack=true;;
-            s )
-                SelfDestruct=true;;
-            v )
-                Verbose=true;;
-            \? )
-                echo "Invalid option: -$OPTARG"
-                echo "Use -h to list valid options"
-                exit 1;;
-            : )
-                echo "Missing option argument for -$OPTARG"
-                exit 1;;
-        esac
-    done
-}
-
-############################################
 # Run locally
 function runLocally() {
     if [ ! -f "gatling/bin/gatling.sh" ]; then
@@ -111,7 +75,6 @@ function runLocally() {
 
     vecho "Preparing simulation files"
     cp LoadSimulation.scala gatling/user-files/simulations/LoadSimulation.scala
-    source params.txt
     
     vecho "Running simulation"
     if [ $Verbose == true ]; then
@@ -183,9 +146,6 @@ function runRemoteSimulation() {
     aws s3 cp LoadSimulation.scala s3://$BucketName \
             --acl public-read \
             >/dev/null
-    aws s3 cp params.txt s3://$BucketName \
-        --acl public-read \
-        >/dev/null
 
     vecho "Starting simulation on remote instance"
     UserName=$(aws iam get-user --query 'User.UserName' --output text)
@@ -224,8 +184,42 @@ function runOnAWS() {
 }
 
 ############################################
+# Arguments parsing
+while getopts ":b:hk:ln:prsv" opt; do
+    case "${opt}" in
+        b )
+            BucketName=$OPTARG
+            UseBucket=true;;
+        h )
+            usage
+            exit 0;;
+        k )
+            SSHKeyName=$OPTARG;;
+        l )
+            Local=true;;
+        n )
+            StackName=$OPTARG;;
+        p )
+            BucketPublicRead=true;;
+        r )
+            ReplaceStack=true;;
+        s )
+            SelfDestruct=true;;
+        v )
+            Verbose=true;;
+        \? )
+            echo "Invalid option: -$OPTARG"
+            echo "Use -h to list valid options"
+            exit 1;;
+        : )
+            echo "Missing option argument for -$OPTARG"
+            exit 1;;
+    esac
+done
+
+############################################
 # Main
-parseArgs
+source params.txt
 if [ $Local == true ]; then
     runLocally
 else
@@ -235,6 +229,7 @@ printSimulationResultsLocation
 
 #Improvements:
 ##HIGH PRIORITY
+###Add Gatling directly to the project instead of downloading it
 ###Ability to enter simulation params on command line
 ##LOW PRIORITY
 ###Choose which simulation file to run (-s gatling option)
