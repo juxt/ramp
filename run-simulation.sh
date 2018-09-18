@@ -37,8 +37,10 @@ function createBucket() {
 function printSimulationResultsLocation() {
     if [ $UseBucket == true ]; then
         #TODO
+        echo "https://s3.console.aws.amazon.com/s3/buckets/$BucketName/"
     else
         #TODO
+        echo "Results available locally in gatling/results"
     fi
 }
 
@@ -223,7 +225,6 @@ function runOnAWS() {
 ############################################
 # Main
 parseArgs
-#updateParams #TODO
 if [ $Local == true ]; then
     runLocally
 else
