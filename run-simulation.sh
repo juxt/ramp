@@ -116,11 +116,11 @@ function runLocally() {
     vecho "Running simulation"
     if [ $Verbose == true ]; then
         JAVA_OPTS="-DPeakUsers=$PeakUsers -DDuration=$Duration -DTargetUrl=$TargetUrl" ./gatling/bin/gatling.sh \
-                 -s "LoadSimulation" \
+                 -s "ramp.LoadSimulation" \
                  -rd "ramp load test"
     else
         JAVA_OPTS="-DPeakUsers=$PeakUsers -DDuration=$Duration -DTargetUrl=$TargetUrl" ./gatling/bin/gatling.sh \
-                 -s "LoadSimulation" \
+                 -s "ramp.LoadSimulation" \
                  -rd "ramp load test" \
                  -m \
                  > gatling/results/gatling.out
