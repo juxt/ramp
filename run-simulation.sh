@@ -2,6 +2,7 @@
 
 BucketName=ramp-load-test-$(uuidgen)
 BucketPublicRead=false
+Local=false
 ReplaceStack=false
 SelfDestruct=false
 StackName=ramping-load-test
@@ -114,11 +115,11 @@ function runLocally() {
     
     vecho "Running simulation"
     if [ $Verbose == true ]; then
-        JAVA_OPTS="-DPeakUsers=$PeakUsers -DDuration=$Duration -DTargetUrl=$TargetUrl" gatling/bin/gatling.sh \
+        JAVA_OPTS="-DPeakUsers=$PeakUsers -DDuration=$Duration -DTargetUrl=$TargetUrl" ./gatling/bin/gatling.sh \
                  -s "LoadSimulation" \
                  -rd "ramp load test"
     else
-        JAVA_OPTS="-DPeakUsers=$PeakUsers -DDuration=$Duration -DTargetUrl=$TargetUrl" gatling/bin/gatling.sh \
+        JAVA_OPTS="-DPeakUsers=$PeakUsers -DDuration=$Duration -DTargetUrl=$TargetUrl" ./gatling/bin/gatling.sh \
                  -s "LoadSimulation" \
                  -rd "ramp load test" \
                  -m \
