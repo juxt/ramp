@@ -1,0 +1,3 @@
+TargetUrl=http://www.example.com
+PeakUsers=100
+Duration=12
