@@ -8,28 +8,22 @@ It can be customised for more complex use cases.
 
 ## How to use
 
-### On the command line
+. https://docs.aws.amazon.com/cli/latest/userguide/installing.html[Install] and https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html[configure] the Amazon Command Line Interface. You may need to set your default region as eu-west-1.
 
-. https://docs.aws.amazon.com/cli/latest/userguide/installing.html[Install] and https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html[configure] the Amazon Command Line Interface.
+. Edit your simulation's parameters in `params.txt`. `TargetUrl` is the url to hammer with GET requests, `PeakUsers` is the maximum number of concurrent simulated users, and `Duration` is the total duration of the test in seconds (1/3 ramp-up, 1/3 peak, 1/3 ramp-down).
 
-. Run the `create-stack.sh` script with `-t your-target-url` as parameter, plus any other parameters you need. The list of valid parameters is shown on `./create-stack.sh -h`
+. Call the `run-simulation.sh` script with any other parameters you need. The list of valid parameters is shown on `./create-stack.sh -h`
 
-    $ ./create-stack.sh -t http://www.example.com -b my-bucket-name -p -s -v
+.. All parameters are optional.
 
-### Manually on the AWS console
+.. If running locally, you can still specify a bucket name with `-b`. Your esults will be uploaded there for ease of sharing. `-p` is recommended for that purpose.
 
-. Create an https://s3.console.aws.amazon.com/s3/home?region=eu-west-1[S3 bucket] (if you don't already have one). Give it https://docs.aws.amazon.com/AmazonS3/latest/dev/WebsiteAccessPermissionsReqd.html[public read permissions].
+.. If planning to run multiple remote simulations, only use `-s` on the last run, so that you reuse the same stack instead of recreating it over and over again.
 
-. Upload `aws-userdata.sh` and `LoadSimulation.scala` to that bucket.
-
-. In https://eu-west-1.console.aws.amazon.com/cloudformation/home?region=eu-west-1#/[CloudFormation], click "Create Stack".
-
-. Click "Upload a template to Amazon S3" -> "Browse" and upload `aws-cft-ramp.yaml`, then click "Next".
-
-. Fill in the parameters as instructed.
+    $ ./create-stack.sh -b my-bucket-name -p -s -v
 
 ## Customisation
 
 * Currently, the template only works in eu-west-1. If you want to use a different region, you'll have to change the AMI to an Amazon Linux AMI that's valid in the new region.
 
-* By default, the script merely sends GET requests to a target url. But it can provide much more complex use cases if you replace `LoadSimulation.scala` with your own https://gatling.io/documentation/[Gatling simulation script].
+* By default, the script merely sends GET requests to a target url. But it can provide much more complex use cases if you replace `LoadSimulation.scala` with your own https://gatling.io/documentation/[Gatling simulation script]. (You will eventually be able to pass arbitrary parameters to the simulation, but that is currently WIP.)
