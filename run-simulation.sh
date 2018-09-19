@@ -89,7 +89,7 @@ function runLocally() {
                  > gatling/results/gatling.out
     fi
 
-    if [ $UseBucket == true]; then
+    if [ $UseBucket == true ]; then
         createBucket
         vecho "Uploading results to $BucketName..."
         aws s3 cp --recursive gatling/results/ s3://$BucketName/
