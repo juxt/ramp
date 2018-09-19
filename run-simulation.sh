@@ -10,6 +10,7 @@ SSHKeyName=
 Region=eu-west-1
 UseBucket=false
 Verbose=false
+declare -A SimParams=()
 
 function usage() {
     printf "
@@ -22,7 +23,8 @@ Options:\n\
   -p            Public: give the results S3 bucket public-read permissions\n\
   -r            Replace: first delete any existing stack with the same name
   -s            Self-destruct: delete the stack once testing is complete\n\
-  -v            Verbose: prints details of the stack launch\n"
+  -v            Verbose: prints details of the stack launch\n\
+  --<string1> <string2> Assigns value string2 to the parameter string1 that will be passed to the Gatling script. Currently supported parameters are TargetUrl, PeakUsers, and Duration. If you pass one, you must pass all three."
 }
 
 ############################################
@@ -47,6 +49,13 @@ function createBucket() {
             --bucket $BucketName \
             --policy "{ \"Version\":\"2012-10-17\", \"Statement\":[{ \"Sid\":\"PublicReadGetObject\", \"Effect\":\"Allow\", \"Principal\": \"*\", \"Action\":[\"s3:GetObject\"], \"Resource\":[\"arn:aws:s3:::$BucketName/*\" ] } ] }"
     fi
+}
+
+function paramsToFile() {
+    rm params.txt
+    for key in "${!SimParams[@]}"; do
+        echo $key=${SimParams[$key]} >> params.txt
+    done
 }
 
 function printSimulationResultsLocation() {
@@ -196,7 +205,7 @@ function runOnAWS() {
 
 ############################################
 # Arguments parsing
-while getopts ":b:hk:ln:prsv" opt; do
+while getopts ":b:hk:ln:prsv-:" opt; do
     case "${opt}" in
         b )
             BucketName=$OPTARG
@@ -218,6 +227,17 @@ while getopts ":b:hk:ln:prsv" opt; do
             SelfDestruct=true;;
         v )
             Verbose=true;;
+        - )
+            case "${OPTARG}" in
+                *)
+                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
+                    if [ -z "$val" ] || [[ $val == -* ]]; then
+                        echo "Missing option argument for --$OPTARG"
+                        exit 1
+                    fi
+                    SimParams[${OPTARG}]=${val}
+                    paramsToFile;;
+            esac;;
         \? )
             echo "Invalid option: -$OPTARG"
             echo "Use -h to list valid options"
@@ -240,8 +260,8 @@ printSimulationResultsLocation
 
 #Improvements:
 ##HIGH PRIORITY
-###Ability to enter simulation params on command line
 ###Direct url to simulation results
+###When entering a simulation param on the command line, do not delete all existing ones
 ##LOW PRIORITY
 ###Better folder management in the bucket
 ###Choose which simulation file to run (-s gatling option)
