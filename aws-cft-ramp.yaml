@@ -83,7 +83,9 @@ Resources:
       UserData:
         Fn::Base64: !Sub |
           #!bin/bash
-          wget http://${BucketName}.s3.amazonaws.com/aws-userdata.sh
-          chmod +x aws-userdata.sh
-          ./aws-userdata.sh
-          rm aws-userdata.sh
+          yum remove -y java-1.7.0-openjdk
+          yum install -y java-1.8.0
+          aws s3 cp --recursive s3://${BucketName}/gatling/ /gatling/
+          rm -rf /gatling/user-files/simulations/
+          mkdir /gatling/user-files/simulations/
+          chmod -R 777 /gatling

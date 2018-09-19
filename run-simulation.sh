@@ -110,8 +110,8 @@ function deleteStack() {
 }
 
 function createStack() {
-    vecho "Uploading stack setup files to $BucketName..."
-    aws s3 cp aws-userdata.sh s3://$BucketName \
+    vecho "Uploading setup files to $BucketName..."
+    aws s3 cp --recursive gatling/ s3://$BucketName/gatling/ \
             --acl public-read \
             >/dev/null
     
@@ -147,13 +147,20 @@ function runRemoteSimulation() {
             --acl public-read \
             >/dev/null
 
-    vecho "Starting simulation on remote instance..."
     UserName=$(aws iam get-user --query 'User.UserName' --output text)
     aws iam attach-user-policy --user-name $UserName --policy-arn arn:aws:iam::aws:policy/AmazonSSMFullAccess
     InstanceId=$(aws ec2 describe-instances \
                      --query "Reservations[*].Instances[0].InstanceId[]" \
                      --filters "Name=tag-key,Values=aws:cloudformation:stack-name" "Name=tag-value,Values=ramping-load-test" \
+                     "Name=instance-state-name,Values=running" \
                      --output=text)
+    
+    vecho "Waiting for instance to finish setup..."
+    aws ec2 wait instance-status-ok \
+        --instance-ids $InstanceId \
+        >/dev/null
+    
+    vecho "Starting simulation on remote instance..."
     # aws s3 cp s3://$BucketName/LoadSimulation.scala \
     #     /gatling/user-files/simulations/
     # JAVA_OPTS="-DPeakUsers=$PeakUsers -DDuration=$Duration -DTargetUrl=$TargetUrl" /gatling/bin/gatling.sh \
@@ -233,7 +240,6 @@ printSimulationResultsLocation
 
 #Improvements:
 ##HIGH PRIORITY
-###Add Gatling directly to the project instead of downloading it
 ###Ability to enter simulation params on command line
 ###Direct url to simulation results
 ##LOW PRIORITY
@@ -241,6 +247,9 @@ printSimulationResultsLocation
 ###Choose which simulation file to run (-s gatling option)
 ###Add comments to simulation results (-rd gatling option)
 ###Only create-bucket & create-stack (& upload stuff) if they don't exist
+###Only upload files that aren't already on bucket
 ###Send arbitrary params to Gatling
 ###Use any region
 ###Wait for instance to be in ok state before running commands
+###Instead of always giving the setup files public-read access, find some proper secure way to let the instance download them
+###When uploading gatling to bucket, don't upload simulations or results
