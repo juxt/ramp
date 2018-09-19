@@ -12,7 +12,7 @@ It can be customised for more complex use cases.
 
 . Edit your simulation's parameters in `params.txt`. `TargetUrl` is the url to hammer with GET requests, `PeakUsers` is the maximum number of concurrent simulated users, and `Duration` is the total duration of the test in seconds (1/3 ramp-up, 1/3 peak, 1/3 ramp-down).
 
-. Call the `run-simulation.sh` script with any other parameters you need. The list of valid parameters is shown on `./create-stack.sh -h`
+. Call the `run-simulation.sh` script with any other parameters you need. The list of valid parameters is shown on `./run-simulation.sh -h`
 
 .. All parameters are optional.
 
@@ -20,7 +20,7 @@ It can be customised for more complex use cases.
 
 .. If planning to run multiple remote simulations, only use `-s` on the last run, so that you reuse the same stack instead of recreating it over and over again.
 
-    $ ./create-stack.sh -b my-bucket-name -p -s -v
+    $ ./run-simulation -b my-bucket-name -p -s -v
 
 ## Customisation
 
