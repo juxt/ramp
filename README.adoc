@@ -14,11 +14,11 @@ It can be customised for more complex use cases.
 
 . Call the `run-simulation.sh` script with any other parameters you need. The list of valid parameters is shown on `./run-simulation.sh -h`
 
-.. All parameters are optional.
+** All parameters are optional.
 
-.. If running locally, you can still specify a bucket name with `-b`. Your results will be uploaded there for ease of sharing. `-p` is recommended for that purpose.
+** If running locally, you can still specify a bucket name with `-b`. Your results will be uploaded there for ease of sharing. `-p` is recommended for that purpose.
 
-.. If planning to run multiple remote simulations, only use `-s` on the last run, so that you reuse the same stack instead of recreating it over and over again.
+** If planning to run multiple remote simulations, only use `-s` on the last run, so that you reuse the same stack instead of recreating it over and over again.
 
     $ ./run-simulation -b my-bucket-name -p -s -v
 
