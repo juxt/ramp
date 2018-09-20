@@ -51,6 +51,16 @@ function createBucket() {
     fi
 }
 
+function printSimulationResultsLocation() {
+    if [ $UseBucket == true ]; then
+        #TODO
+        echo "https://s3.console.aws.amazon.com/s3/buckets/$BucketName/"
+    else
+        #TODO
+        echo "Results available locally in gatling/results"
+    fi
+}
+
 function fileToArray() {
     while read -r kv
     do
@@ -65,16 +75,6 @@ function arrayToFile() {
     for key in "${!SimParams[@]}"; do
         echo $key=${SimParams[$key]} >> params.txt
     done
-}
-
-function printSimulationResultsLocation() {
-    if [ $UseBucket == true ]; then
-        #TODO
-        echo "https://s3.console.aws.amazon.com/s3/buckets/$BucketName/"
-    else
-        #TODO
-        echo "Results available locally in gatling/results"
-    fi
 }
 
 ############################################
