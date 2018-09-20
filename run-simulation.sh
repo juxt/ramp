@@ -315,15 +315,16 @@ fi
 printSimulationResultsLocation
 
 #Improvements:
+##HIGH PRIORITY
+###Use any region (requires a lambda fn)
+###When uploading gatling to bucket, don't upload simulations or results
 ##MID PRIORITY
 ###Only create-stack if it doesn't exist
 ###Only upload files that aren't already on bucket
-###Use any region (requires a lambda fn)
-###When uploading gatling to bucket, don't upload simulations or results
-##LOW PRIORITY
 ###Better folder management in the bucket
+###Don't repeat yourself
+##LOW PRIORITY
 ###Choose which simulation file to run (-s gatling option)
 ###Instead of always giving the setup files public-read access, find some proper secure way to let the instance download them
 ###Faster stack creation (use a custom wait?)
 ###Fix the silly "latestSim" file dance
-###DRY
