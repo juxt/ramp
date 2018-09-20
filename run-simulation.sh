@@ -38,12 +38,15 @@ function vecho() {
 }
 
 function createBucket() {
-    vecho "Creating bucket $BucketName..."
-    aws s3api create-bucket \
-        --bucket "$BucketName" \
-        --create-bucket-configuration \
-        LocationConstraint="$Region" \
-        >/dev/null
+    BucketExists=$(aws s3api head-bucket --bucket "$BucketName" 2>&1)
+    if [ ! -z "$BucketExists" ]; then
+        vecho "Creating bucket $BucketName..."
+        aws s3api create-bucket \
+            --bucket "$BucketName" \
+            --create-bucket-configuration \
+            LocationConstraint="$Region" \
+            >/dev/null
+    fi
     
     if [ $BucketPublicRead == true ]; then
         vecho "Giving $BucketName public-read permissions..."
