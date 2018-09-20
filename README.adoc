@@ -28,11 +28,11 @@ Single-dash arguments are used by the script itself. Double-dash arguments are p
 
 The script will first look for simulation arguments in `params.txt`, but will overwrite them with your double-dash arguments (if you provide any). You can edit that file manually, which might be useful if you need a *lot* of simulation arguments.
 
-If you use a custom simulation file, you can use custom simulation arguments too. `run-simulation.sh` will accept and pass on arbitrary double-dash argument. See `Params` in `LoadSimulation.scala` for the syntax to import arguments.
+If you use a custom simulation file, you can use custom simulation arguments too. `run-simulation.sh` will accept and pass on arbitrary double-dash arguments. See `Params` in `LoadSimulation.scala` for the syntax to import arguments.
 
 If running locally, you can still specify a bucket name with `-b`. Your results will be uploaded there. For ease of viewing, it is recommended that you make that bucket public with `-p`.
 
-If running remotely, be aware that by default the stack will not be deleted after the simulation is complete (and you will continue to be billed for its EC2 instance). This allows you to run multiple simulations in a row without having to create a new stack every time. When you want to delete the stack, use `-s`.
+If running remotely, be aware that by default the stack will not be deleted after the simulation is complete (*and you will continue to be billed for its EC2 instance*). This allows you to run multiple simulations in a row without having to create a new stack every time. When you want to delete the stack, use `-s`.
 
 ## Customisation
 
