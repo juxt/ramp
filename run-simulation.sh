@@ -49,7 +49,6 @@ function createBucket() {
     fi
     
     if [ $BucketPublicRead == true ]; then
-        vecho "Giving $BucketName public-read permissions..."
         aws s3api put-bucket-policy \
             --bucket "$BucketName" \
             --policy "{ \"Version\":\"2012-10-17\", \"Statement\":[{ \"Sid\":\"PublicReadGetObject\", \"Effect\":\"Allow\", \"Principal\": \"*\", \"Action\":[\"s3:GetObject\"], \"Resource\":[\"arn:aws:s3:::$BucketName/*\" ] } ] }" \
@@ -97,10 +96,8 @@ function arrayToFile() {
 ############################################
 # Run locally
 function runLocally() {
-    vecho "Preparing simulation files..."
-    cp LoadSimulation.scala gatling/user-files/simulations/LoadSimulation.scala
-    
     vecho "Running simulation locally..."
+    cp LoadSimulation.scala gatling/user-files/simulations/LoadSimulation.scala
     JavaOpts=''
     for key in "${!SimParams[@]}"; do
         JavaOpts=$JavaOpts-D$key=${SimParams[$key]}' '
@@ -180,7 +177,6 @@ function runRemoteSimulation() {
             --acl public-read \
             >/dev/null
 
-    vecho "Preparing simulation command..."
     UserName=$(aws iam get-user --query 'User.UserName' --output text)
     aws iam attach-user-policy \
         --user-name "$UserName" \
@@ -320,13 +316,14 @@ printSimulationResultsLocation
 
 #Improvements:
 ##MID PRIORITY
-###Add comments to simulation results (-rd gatling option)
-###Only create-bucket & create-stack (& upload stuff) if they don't exist
+###Only create-stack if it doesn't exist
 ###Only upload files that aren't already on bucket
-###Use any region
+###Use any region (requires a lambda fn)
 ###When uploading gatling to bucket, don't upload simulations or results
 ##LOW PRIORITY
 ###Better folder management in the bucket
 ###Choose which simulation file to run (-s gatling option)
 ###Instead of always giving the setup files public-read access, find some proper secure way to let the instance download them
 ###Faster stack creation (use a custom wait?)
+###Fix the silly "latestSim" file dance
+###DRY
