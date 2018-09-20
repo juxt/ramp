@@ -47,17 +47,29 @@ function createBucket() {
         vecho "Giving $BucketName public-read permissions..."
         aws s3api put-bucket-policy \
             --bucket "$BucketName" \
-            --policy "{ \"Version\":\"2012-10-17\", \"Statement\":[{ \"Sid\":\"PublicReadGetObject\", \"Effect\":\"Allow\", \"Principal\": \"*\", \"Action\":[\"s3:GetObject\"], \"Resource\":[\"arn:aws:s3:::$BucketName/*\" ] } ] }"
+            --policy "{ \"Version\":\"2012-10-17\", \"Statement\":[{ \"Sid\":\"PublicReadGetObject\", \"Effect\":\"Allow\", \"Principal\": \"*\", \"Action\":[\"s3:GetObject\"], \"Resource\":[\"arn:aws:s3:::$BucketName/*\" ] } ] }" /
+        >/dev/null
     fi
 }
 
 function printSimulationResultsLocation() {
     if [ $UseBucket == true ]; then
-        #TODO
-        echo "https://s3.console.aws.amazon.com/s3/buckets/$BucketName/"
+        vecho "Waiting for simulation results..."
+        aws s3api wait object-exists \
+            --bucket $BucketName \
+            --key LatestSim.txt \
+            >/dev/null
+        aws s3 mv s3://$BucketName/LatestSim.txt LatestSim.txt \
+            >/dev/null
+        LatestSim=$(<LatestSim.txt)
+        rm -f LatestSim.txt
+        echo "Simulation report: https://s3-eu-west-1.amazonaws.com/hugo-temp-load-test/$LatestSim/index.html"
     else
-        #TODO
-        echo "Results available locally in gatling/results"
+        if [ $Verbose == false ]; then
+            #If Verbose, gatling itself will print the report path
+            LatestSim=$(ls gatling/results/ | sort | tail -n 1)
+            echo "Simulation report: $PWD/gatling/results/$LatestSim/index.html"
+        fi
     fi
 }
 
@@ -109,8 +121,13 @@ function runLocally() {
 
     if [ $UseBucket == true ]; then
         createBucket
+        LatestSim=$(ls gatling/results/ | sort | tail -n 1)
+        echo $LatestSim > LatestSim.txt
         vecho "Uploading results to $BucketName..."
-        aws s3 cp --recursive gatling/results/ s3://"$BucketName"/
+        aws s3 mv LatestSim.txt s3://$BucketName/ \
+            >/dev/null
+        aws s3 cp --recursive gatling/results/ s3://"$BucketName"/ \
+            >/dev/null
     fi
 }
 
@@ -169,7 +186,8 @@ function runRemoteSimulation() {
     UserName=$(aws iam get-user --query 'User.UserName' --output text)
     aws iam attach-user-policy \
         --user-name "$UserName" \
-        --policy-arn arn:aws:iam::aws:policy/AmazonSSMFullAccess
+        --policy-arn arn:aws:iam::aws:policy/AmazonSSMFullAccess \
+        >/dev/null
     InstanceId=$(aws ec2 describe-instances \
                      --query "Reservations[*].Instances[0].InstanceId[]" \
                      --filters "Name=tag-key,Values=aws:cloudformation:stack-name" "Name=tag-value,Values=ramping-load-test" \
@@ -192,12 +210,32 @@ function runRemoteSimulation() {
     #          -s "ramp.LoadSimulation" \
     #          -m \
     #          > /gatling/results/gatling.out
-    # aws s3 cp --recursive /gatling/results/ s3://$BucketName/
+    # LatestSim=$(ls /gatling/results/ | sort | tail -n 1)
+    # mv /gatling/results/gatling.out /gatling/results/$LatestSim/
+    # echo $LatestSim > /gatling/LatestSim.txt
+    # aws s3 cp /gatling/LatestSim.txt s3://$BucketName/
+    # aws s3 cp --recursive /gatling/results/$LatestSim/ s3://$BucketName/$LatestSim/
     aws ssm send-command \
         --document-name "AWS-RunShellScript" \
         --document-version "\$DEFAULT" \
         --targets "Key=instanceids,Values=$InstanceId" \
-        --parameters '{"workingDirectory":[""],"executionTimeout":["172800"],"commands":["aws s3 cp s3://'"$BucketName"'/LoadSimulation.scala /gatling/user-files/simulations","JAVA_OPTS=\"'"$JavaOpts"'\" /gatling/bin/gatling.sh -s \"ramp.LoadSimulation\" -m > /gatling/results/gatling.out","aws s3 cp --recursive /gatling/results/ s3://'"$BucketName"'/"]}' \
+        --parameters '{
+"workingDirectory":[""],
+"executionTimeout":["172800"],
+"commands":[
+
+"aws s3 cp s3://'"$BucketName"'/LoadSimulation.scala /gatling/user-files/simulations",
+
+"JAVA_OPTS=\"'"$JavaOpts"'\" /gatling/bin/gatling.sh -s \"ramp.LoadSimulation\" -m > /gatling/results/gatling.out",
+
+"LatestSim=$(ls /gatling/results/ | sort | tail -n 1)",
+"mv /gatling/results/gatling.out /gatling/results/$LatestSim/",
+"echo $LatestSim > /gatling/LatestSim.txt",
+"aws s3 cp /gatling/LatestSim.txt s3://'"$BucketName"'/",
+
+"aws s3 cp --recursive /gatling/results/$LatestSim/ s3://'"$BucketName"'/$LatestSim/"
+
+]}' \
         --comment "console test" \
         --timeout-seconds 600 \
         --max-concurrency "50" \
@@ -276,15 +314,14 @@ fi
 printSimulationResultsLocation
 
 #Improvements:
-##HIGH PRIORITY
-###Direct url to simulation results
-##LOW PRIORITY
-###Better folder management in the bucket
-###Choose which simulation file to run (-s gatling option)
+##MID PRIORITY
 ###Add comments to simulation results (-rd gatling option)
 ###Only create-bucket & create-stack (& upload stuff) if they don't exist
 ###Only upload files that aren't already on bucket
 ###Use any region
-###Instead of always giving the setup files public-read access, find some proper secure way to let the instance download them
 ###When uploading gatling to bucket, don't upload simulations or results
+##LOW PRIORITY
+###Better folder management in the bucket
+###Choose which simulation file to run (-s gatling option)
+###Instead of always giving the setup files public-read access, find some proper secure way to let the instance download them
 ###Faster stack creation (use a custom wait?)
