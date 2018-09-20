@@ -51,7 +51,16 @@ function createBucket() {
     fi
 }
 
-function paramsToFile() {
+function fileToArray() {
+    while read -r kv
+    do
+        key=$(echo "$kv" | cut -d '=' -f1)
+        val=$(echo "$kv" | cut -d '=' -f2)
+        SimParams[$key]=$val
+    done < "params.txt"
+}
+
+function arrayToFile() {
     rm params.txt
     for key in "${!SimParams[@]}"; do
         echo $key=${SimParams[$key]} >> params.txt
@@ -85,7 +94,7 @@ function runLocally() {
     vecho "Preparing simulation files..."
     cp LoadSimulation.scala gatling/user-files/simulations/LoadSimulation.scala
     
-    vecho "Running simulation..."
+    vecho "Running simulation locally..."
     if [ $Verbose == true ]; then
         JAVA_OPTS="-DPeakUsers=$PeakUsers -DDuration=$Duration -DTargetUrl=$TargetUrl" ./gatling/bin/gatling.sh \
                  -s "ramp.LoadSimulation" \
@@ -169,7 +178,7 @@ function runRemoteSimulation() {
         --instance-ids $InstanceId \
         >/dev/null
     
-    vecho "Starting simulation on remote instance..."
+    vecho "Running simulation on remote instance..."
     # aws s3 cp s3://$BucketName/LoadSimulation.scala \
     #     /gatling/user-files/simulations/
     # JAVA_OPTS="-DPeakUsers=$PeakUsers -DDuration=$Duration -DTargetUrl=$TargetUrl" /gatling/bin/gatling.sh \
@@ -204,7 +213,9 @@ function runOnAWS() {
 }
 
 ############################################
-# Arguments parsing
+# Main
+fileToArray
+
 while getopts ":b:hk:ln:prsv-:" opt; do
     case "${opt}" in
         b )
@@ -235,8 +246,7 @@ while getopts ":b:hk:ln:prsv-:" opt; do
                         echo "Missing option argument for --$OPTARG"
                         exit 1
                     fi
-                    SimParams[${OPTARG}]=${val}
-                    paramsToFile;;
+                    SimParams[${OPTARG}]=${val};;
             esac;;
         \? )
             echo "Invalid option: -$OPTARG"
@@ -248,9 +258,9 @@ while getopts ":b:hk:ln:prsv-:" opt; do
     esac
 done
 
-############################################
-# Main
+arrayToFile
 source params.txt
+
 if [ $Local == true ]; then
     runLocally
 else
