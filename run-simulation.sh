@@ -38,15 +38,15 @@ function vecho() {
 function createBucket() {
     vecho "Creating bucket $BucketName..."
     aws s3api create-bucket \
-        --bucket $BucketName \
+        --bucket "$BucketName" \
         --create-bucket-configuration \
-        LocationConstraint=$Region \
+        LocationConstraint="$Region" \
         >/dev/null
     
     if [ $BucketPublicRead == true ]; then
         vecho "Giving $BucketName public-read permissions..."
         aws s3api put-bucket-policy \
-            --bucket $BucketName \
+            --bucket "$BucketName" \
             --policy "{ \"Version\":\"2012-10-17\", \"Statement\":[{ \"Sid\":\"PublicReadGetObject\", \"Effect\":\"Allow\", \"Principal\": \"*\", \"Action\":[\"s3:GetObject\"], \"Resource\":[\"arn:aws:s3:::$BucketName/*\" ] } ] }"
     fi
 }
@@ -71,7 +71,7 @@ function fileToArray() {
 }
 
 function arrayToFile() {
-    rm params.txt
+    rm -f params.txt
     for key in "${!SimParams[@]}"; do
         echo $key=${SimParams[$key]} >> params.txt
     done
@@ -110,7 +110,7 @@ function runLocally() {
     if [ $UseBucket == true ]; then
         createBucket
         vecho "Uploading results to $BucketName..."
-        aws s3 cp --recursive gatling/results/ s3://$BucketName/
+        aws s3 cp --recursive gatling/results/ s3://"$BucketName"/
     fi
 }
 
@@ -119,39 +119,39 @@ function runLocally() {
 function deleteStack() {
     vecho "Deleting stack $StackName..."
     aws cloudformation delete-stack \
-        --stack-name $StackName \
+        --stack-name "$StackName" \
         >/dev/null
 
     aws cloudformation wait stack-delete-complete \
-        --stack-name $StackName \
+        --stack-name "$StackName" \
         >/dev/null
 }
 
 function createStack() {
     vecho "Uploading setup files to $BucketName..."
-    aws s3 cp --recursive gatling/ s3://$BucketName/gatling/ \
+    aws s3 cp --recursive gatling/ s3://"$BucketName"/gatling/ \
             --acl public-read \
             >/dev/null
     
     vecho "Creating stack $StackName..."
     aws cloudformation create-stack \
-        --stack-name $StackName \
-        --region $Region \
+        --stack-name "$StackName" \
+        --region "$Region" \
         --template-body file://aws-cft-ramp.yaml \
         --capabilities CAPABILITY_NAMED_IAM \
         --parameters \
-        ParameterKey=BucketName,ParameterValue=$BucketName \
-        ParameterKey=SSHKeyName,ParameterValue=$SSHKeyName \
+        ParameterKey=BucketName,ParameterValue="$BucketName" \
+        ParameterKey=SSHKeyName,ParameterValue="$SSHKeyName" \
         > /dev/null
 
     aws cloudformation wait stack-create-complete \
-        --stack-name $StackName \
+        --stack-name "$StackName" \
         >/dev/null
 
     StackStatus=$(aws cloudformation describe-stacks \
-                       --stack-name $StackName \
-                       --query 'Stacks[0].StackStatus' \
-                       --output text)
+                      --stack-name "$StackName" \
+                      --query 'Stacks[0].StackStatus' \
+                      --output text)
     if [ $StackStatus != CREATE_COMPLETE ]; then
         echo "Stack creation failed!"
         exit 1
@@ -161,27 +161,34 @@ function createStack() {
 function runRemoteSimulation() {
     UseBucket=true
     vecho "Uploading simulation files to $BucketName..."
-    aws s3 cp LoadSimulation.scala s3://$BucketName \
+    aws s3 cp LoadSimulation.scala s3://"$BucketName" \
             --acl public-read \
             >/dev/null
 
+    vecho "Preparing simulation command..."
     UserName=$(aws iam get-user --query 'User.UserName' --output text)
-    aws iam attach-user-policy --user-name $UserName --policy-arn arn:aws:iam::aws:policy/AmazonSSMFullAccess
+    aws iam attach-user-policy \
+        --user-name "$UserName" \
+        --policy-arn arn:aws:iam::aws:policy/AmazonSSMFullAccess
     InstanceId=$(aws ec2 describe-instances \
                      --query "Reservations[*].Instances[0].InstanceId[]" \
                      --filters "Name=tag-key,Values=aws:cloudformation:stack-name" "Name=tag-value,Values=ramping-load-test" \
                      "Name=instance-state-name,Values=running" \
                      --output=text)
+    JavaOpts=''
+    for key in "${!SimParams[@]}"; do
+        JavaOpts=$JavaOpts-D$key=${SimParams[$key]}' '
+    done
     
     vecho "Waiting for instance to finish setup..."
     aws ec2 wait instance-status-ok \
-        --instance-ids $InstanceId \
+        --instance-ids "$InstanceId" \
         >/dev/null
-    
+
     vecho "Running simulation on remote instance..."
     # aws s3 cp s3://$BucketName/LoadSimulation.scala \
     #     /gatling/user-files/simulations/
-    # JAVA_OPTS="-DPeakUsers=$PeakUsers -DDuration=$Duration -DTargetUrl=$TargetUrl" /gatling/bin/gatling.sh \
+    # JAVA_OPTS="$JavaOpts" /gatling/bin/gatling.sh \
     #          -s "ramp.LoadSimulation" \
     #          -m \
     #          > /gatling/results/gatling.out
@@ -190,13 +197,13 @@ function runRemoteSimulation() {
         --document-name "AWS-RunShellScript" \
         --document-version "\$DEFAULT" \
         --targets "Key=instanceids,Values=$InstanceId" \
-        --parameters '{"workingDirectory":[""],"executionTimeout":["172800"],"commands":["aws s3 cp s3://'$BucketName'/LoadSimulation.scala /gatling/user-files/simulations","JAVA_OPTS=\"-DPeakUsers='$PeakUsers' -DDuration='$Duration' -DTargetUrl='$TargetUrl'\" /gatling/bin/gatling.sh -s \"ramp.LoadSimulation\" -m > /gatling/results/gatling.out","aws s3 cp --recursive /gatling/results/ s3://'$BucketName'/"]}' \
+        --parameters '{"workingDirectory":[""],"executionTimeout":["172800"],"commands":["aws s3 cp s3://'"$BucketName"'/LoadSimulation.scala /gatling/user-files/simulations","JAVA_OPTS=\"'"$JavaOpts"'\" /gatling/bin/gatling.sh -s \"ramp.LoadSimulation\" -m > /gatling/results/gatling.out","aws s3 cp --recursive /gatling/results/ s3://'"$BucketName"'/"]}' \
         --comment "console test" \
         --timeout-seconds 600 \
         --max-concurrency "50" \
         --max-errors "0" \
         --output-s3-bucket-name "$BucketName" \
-        --region $Region \
+        --region "$Region" \
         >/dev/null
 }
 
@@ -271,15 +278,13 @@ printSimulationResultsLocation
 #Improvements:
 ##HIGH PRIORITY
 ###Direct url to simulation results
-###When entering a simulation param on the command line, do not delete all existing ones
 ##LOW PRIORITY
 ###Better folder management in the bucket
 ###Choose which simulation file to run (-s gatling option)
 ###Add comments to simulation results (-rd gatling option)
 ###Only create-bucket & create-stack (& upload stuff) if they don't exist
 ###Only upload files that aren't already on bucket
-###Send arbitrary params to Gatling
 ###Use any region
-###Wait for instance to be in ok state before running commands
 ###Instead of always giving the setup files public-read access, find some proper secure way to let the instance download them
 ###When uploading gatling to bucket, don't upload simulations or results
+###Faster stack creation (use a custom wait?)
