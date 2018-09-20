@@ -92,17 +92,6 @@ function arrayToFile() {
 ############################################
 # Run locally
 function runLocally() {
-    if [ ! -f "gatling/bin/gatling.sh" ]; then
-        vecho "Downloading Gatling..."
-        rm -rf gatling/
-        wget https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/2.3.1/gatling-charts-highcharts-bundle-2.3.1-bundle.zip
-        unzip gatling-charts-highcharts-bundle-2.3.1-bundle.zip
-        rm -f gatling-charts-highcharts-bundle-2.3.1-bundle.zip
-        mv gatling-charts-highcharts-bundle-2.3.1/ gatling/
-        rm -rf gatling/user-files/simulations/
-        mkdir gatling/user-files/simulations/
-    fi
-
     vecho "Preparing simulation files..."
     cp LoadSimulation.scala gatling/user-files/simulations/LoadSimulation.scala
     
