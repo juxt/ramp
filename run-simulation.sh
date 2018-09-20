@@ -24,7 +24,7 @@ Options:\n\
   -r            Replace: first delete any existing stack with the same name
   -s            Self-destruct: delete the stack once testing is complete\n\
   -v            Verbose: prints details of the stack launch\n\
-  --<string1> <string2> Assigns value string2 to the parameter string1 that will be passed to the Gatling script. Currently supported parameters are TargetUrl, PeakUsers, and Duration. If you pass one, you must pass all three."
+  --<string1> <string2> Pass the argument string1, with value string2, to the scala simulation script. The default script's supported parameters are TargetUrl, PeakUsers, and Duration."
 }
 
 ############################################

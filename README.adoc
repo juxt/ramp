@@ -1,8 +1,8 @@
 # ramp - Ramping load test
 
-A tiny AWS CloudFormation stack that performs load testing using https://gatling.io/[Gatling].
+A shell script wrapper around https://gatling.io/[Gatling] to perform load tests, either locally or remotely using AWS.
 
-It will create (with ramp-up) a number of users who each connect to a URL and send a GET request every second. It will upload detailed test results to an AWS S3 bucket of your choice, and then - optionally - delete itself.
+It will simulate a number of users who (with ramp-up) attempt to send a GET request every second to a certain URL. It will upload detailed test results to an AWS S3 bucket of your choice where they can be viewed as a web page.
 
 It can be customised for more complex use cases.
 
@@ -10,20 +10,34 @@ It can be customised for more complex use cases.
 
 . https://docs.aws.amazon.com/cli/latest/userguide/installing.html[Install] and https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html[configure] the Amazon Command Line Interface. You may need to set your default region as eu-west-1.
 
-. Edit your simulation's parameters in `params.txt`. `TargetUrl` is the url to hammer with GET requests, `PeakUsers` is the maximum number of concurrent simulated users, and `Duration` is the total duration of the test in seconds (1/3 ramp-up, 1/3 peak, 1/3 ramp-down).
+. Call the `run-simulation.sh` script with any arguments you need.
 
-. Call the `run-simulation.sh` script with any other parameters you need. The list of valid parameters is shown on `./run-simulation.sh -h`
+    $ ./run-simulation -b my-bucket-name -p -s -v --TargetUrl http://www.example.com
 
-** All parameters are optional.
+## Arguments
 
-** If running locally, you can still specify a bucket name with `-b`. Your results will be uploaded there for ease of sharing. `-p` is recommended for that purpose.
+The list of valid arguments is shown on `./run-simulation.sh -h` All arguments are optional.
 
-** If planning to run multiple remote simulations, only use `-s` on the last run, so that you reuse the same stack instead of recreating it over and over again.
+Single-dash arguments are used by the script itself. Double-dash arguments are passed to the simulation. The default `LoadSimulation.scala` takes three arguments:
 
-    $ ./run-simulation -b my-bucket-name -p -s -v
+* TargetUrl - the URL you want to load-test.
+
+* PeakUsers - the maximum number of concurrent users to simulate.
+
+* Duration - the total duration of the test in seconds (1/3 ramp-up, 1/3 peak, 1/3 ramp-down).
+
+The script will first look for those arguments in `params.txt`, but will overwrite them with your prefered values (if you provide any). You can edit that file manually.
+
+If you use a custom simulation file, you can use custom arguments too. Ramp will accept and pass on any double-dash argument. See `Params` in `LoadSimulation.scala` for the syntax to import arguments.
+
+If running locally, you can still specify a bucket name with `-b`. Your results will be uploaded there. For ease of viewing, it is recommended that you make that bucket public with `-p`.
+
+If running remotely, be aware that by default the stack will not be deleted after the simulation is complete (and you will continue to be billed for it). This is to allow you to run multiple simulations in a row without having to recreate a stack every time. When you want to delete the stack, use `-s`.
 
 ## Customisation
 
-* Currently, the template only works in eu-west-1. If you want to use a different region, you'll have to change the AMI to an Amazon Linux AMI that's valid in the new region.
+* By default, the script merely sends GET requests to a target url. But it can provide much more complex use cases if you replace `LoadSimulation.scala` with your own https://gatling.io/documentation/[Gatling simulation script].
 
-* By default, the script merely sends GET requests to a target url. But it can provide much more complex use cases if you replace `LoadSimulation.scala` with your own https://gatling.io/documentation/[Gatling simulation script]. (You will eventually be able to pass arbitrary parameters to the simulation, but that is currently WIP.)
+** Currently, you have to use the same structure: name the file `LoadSimulation.scala`, the package `ramp`, and the Simulation class `LoadSimulation`.
+
+* Currently, the template only works in eu-west-1. If you want to use a different region, you'll have to change the AMI to an Amazon Linux AMI that's valid in the new region.
