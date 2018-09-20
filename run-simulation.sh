@@ -2,6 +2,7 @@
 
 BucketName=ramp-load-test-$(uuidgen)
 BucketPublicRead=false
+Comment="ramping load test"
 Local=false
 ReplaceStack=false
 SelfDestruct=false
@@ -16,6 +17,7 @@ function usage() {
     printf "
 Options:\n\
   -b <string>   Bucket: mame of an S3 bucket to upload test results to. Will be created if it doesn't exist\n\
+  -c <string>   Comment: add a comment to the simulation report. The comment must be wrapped in \"quotes\"
   -h            Help\n\
   -k <string>   Key: name of an existing EC2 KeyPair to enable SSH access to the instance
   -l            Local: run the simulation locally rather than on AWS
@@ -31,7 +33,7 @@ Options:\n\
 # Utils
 function vecho() {
     if [ $Verbose == true ]; then
-        echo $1
+        echo "$1"
     fi
 }
 
@@ -56,10 +58,10 @@ function printSimulationResultsLocation() {
     if [ $UseBucket == true ]; then
         vecho "Waiting for simulation results..."
         aws s3api wait object-exists \
-            --bucket $BucketName \
+            --bucket "$BucketName" \
             --key LatestSim.txt \
             >/dev/null
-        aws s3 mv s3://$BucketName/LatestSim.txt LatestSim.txt \
+        aws s3 mv s3://"$BucketName"/LatestSim.txt LatestSim.txt \
             >/dev/null
         LatestSim=$(<LatestSim.txt)
         rm -f LatestSim.txt
@@ -85,7 +87,7 @@ function fileToArray() {
 function arrayToFile() {
     rm -f params.txt
     for key in "${!SimParams[@]}"; do
-        echo $key=${SimParams[$key]} >> params.txt
+        echo "$key"="${SimParams[$key]}" >> params.txt
     done
 }
 
@@ -96,14 +98,18 @@ function runLocally() {
     cp LoadSimulation.scala gatling/user-files/simulations/LoadSimulation.scala
     
     vecho "Running simulation locally..."
+    JavaOpts=''
+    for key in "${!SimParams[@]}"; do
+        JavaOpts=$JavaOpts-D$key=${SimParams[$key]}' '
+    done
     if [ $Verbose == true ]; then
-        JAVA_OPTS="-DPeakUsers=$PeakUsers -DDuration=$Duration -DTargetUrl=$TargetUrl" ./gatling/bin/gatling.sh \
+        JAVA_OPTS="$JavaOpts" ./gatling/bin/gatling.sh \
                  -s "ramp.LoadSimulation" \
-                 -rd "ramp load test"
+                 -rd "$Comment"
     else
-        JAVA_OPTS="-DPeakUsers=$PeakUsers -DDuration=$Duration -DTargetUrl=$TargetUrl" ./gatling/bin/gatling.sh \
+        JAVA_OPTS="$JavaOpts" ./gatling/bin/gatling.sh \
                  -s "ramp.LoadSimulation" \
-                 -rd "ramp load test" \
+                 -rd "$Comment" \
                  -m \
                  > gatling/results/gatling.out
     fi
@@ -111,9 +117,9 @@ function runLocally() {
     if [ $UseBucket == true ]; then
         createBucket
         LatestSim=$(ls gatling/results/ | sort | tail -n 1)
-        echo $LatestSim > LatestSim.txt
+        echo "$LatestSim" > LatestSim.txt
         vecho "Uploading results to $BucketName..."
-        aws s3 mv LatestSim.txt s3://$BucketName/ \
+        aws s3 mv LatestSim.txt s3://"$BucketName"/ \
             >/dev/null
         aws s3 cp --recursive gatling/results/ s3://"$BucketName"/ \
             >/dev/null
@@ -158,7 +164,7 @@ function createStack() {
                       --stack-name "$StackName" \
                       --query 'Stacks[0].StackStatus' \
                       --output text)
-    if [ $StackStatus != CREATE_COMPLETE ]; then
+    if [ "$StackStatus" != CREATE_COMPLETE ]; then
         echo "Stack creation failed!"
         exit 1
     fi
@@ -197,6 +203,7 @@ function runRemoteSimulation() {
     #     /gatling/user-files/simulations/
     # JAVA_OPTS="$JavaOpts" /gatling/bin/gatling.sh \
     #          -s "ramp.LoadSimulation" \
+    #          -rd $Comment \
     #          -m \
     #          > /gatling/results/gatling.out
     # LatestSim=$(ls /gatling/results/ | sort | tail -n 1)
@@ -215,7 +222,11 @@ function runRemoteSimulation() {
 
 "aws s3 cp s3://'"$BucketName"'/LoadSimulation.scala /gatling/user-files/simulations",
 
-"JAVA_OPTS=\"'"$JavaOpts"'\" /gatling/bin/gatling.sh -s \"ramp.LoadSimulation\" -m > /gatling/results/gatling.out",
+"JAVA_OPTS=\"'"$JavaOpts"'\" 
+/gatling/bin/gatling.sh 
+-s \"ramp.LoadSimulation\" 
+-rd '"$Comment"'
+-m > /gatling/results/gatling.out",
 
 "LatestSim=$(ls /gatling/results/ | sort | tail -n 1)",
 "mv /gatling/results/gatling.out /gatling/results/$LatestSim/",
@@ -250,20 +261,22 @@ function runOnAWS() {
 # Main
 fileToArray
 
-while getopts ":b:hk:ln:prsv-:" opt; do
-    case "${opt}" in
+while getopts ":b:c:hk:ln:prsv-:" opt; do
+    case "$opt" in
         b )
-            BucketName=$OPTARG
+            BucketName="$OPTARG"
             UseBucket=true;;
+        c )
+            Comment="$OPTARG";;
         h )
             usage
             exit 0;;
         k )
-            SSHKeyName=$OPTARG;;
+            SSHKeyName="$OPTARG";;
         l )
             Local=true;;
         n )
-            StackName=$OPTARG;;
+            StackName="$OPTARG";;
         p )
             BucketPublicRead=true;;
         r )
