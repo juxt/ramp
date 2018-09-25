@@ -67,7 +67,7 @@ function printSimulationResultsLocation() {
             >/dev/null
         LatestSim=$(<LatestSim.txt)
         rm -f LatestSim.txt
-        echo "Simulation report: https://s3-eu-west-1.amazonaws.com/hugo-temp-load-test/$LatestSim/index.html"
+        echo "Simulation report: https://s3-eu-west-1.amazonaws.com/$BucketName/$LatestSim/index.html"
     else
         if [ $Verbose == false ]; then
             #If Verbose, gatling itself will print the report path
