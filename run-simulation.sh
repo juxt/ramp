@@ -2,7 +2,6 @@
 
 BucketName=ramp-load-test-$(uuidgen)
 BucketPublicRead=false
-Comment="ramping load test"
 Local=false
 ReplaceStack=false
 SelfDestruct=false
@@ -17,7 +16,6 @@ function usage() {
     printf "
 Options:\n\
   -b <string>   Bucket: mame of an S3 bucket to upload test results to. Will be created if it doesn't exist\n\
-  -c <string>   Comment: add a comment to the simulation report. The comment must be wrapped in \"quotes\"
   -h            Help\n\
   -k <string>   Key: name of an existing EC2 KeyPair to enable SSH access to the instance
   -l            Local: run the simulation locally rather than on AWS
@@ -104,12 +102,10 @@ function runLocally() {
     done
     if [ $Verbose == true ]; then
         JAVA_OPTS="$JavaOpts" ./gatling/bin/gatling.sh \
-                 -s "ramp.LoadSimulation" \
-                 -rd "$Comment"
+                 -s "ramp.LoadSimulation"
     else
         JAVA_OPTS="$JavaOpts" ./gatling/bin/gatling.sh \
                  -s "ramp.LoadSimulation" \
-                 -rd "$Comment" \
                  -m \
                  > gatling/results/gatling.out
     fi
@@ -202,7 +198,6 @@ function runRemoteSimulation() {
     #     /gatling/user-files/simulations/
     # JAVA_OPTS="$JavaOpts" /gatling/bin/gatling.sh \
     #          -s "ramp.LoadSimulation" \
-    #          -rd $Comment \
     #          -m \
     #          > /gatling/results/gatling.out
     # LatestSim=$(ls /gatling/results/ | sort | tail -n 1)
@@ -214,8 +209,8 @@ function runRemoteSimulation() {
         --document-name "AWS-RunShellScript" \
         --document-version "\$DEFAULT" \
         --targets "Key=instanceids,Values=$InstanceId" \
-        --parameters '{"workingDirectory":[""],"executionTimeout":["172800"],"commands":["aws s3 cp s3://'"$BucketName"'/LoadSimulation.scala /gatling/user-files/simulations","JAVA_OPTS=\"'"$JavaOpts"'\" /gatling/bin/gatling.sh -s \"ramp.LoadSimulation\" -rd '"$Comment"' -m > /gatling/results/gatling.out","LatestSim=$(ls /gatling/results/ | sort | tail -n 1)","mv /gatling/results/gatling.out /gatling/results/$LatestSim/","echo $LatestSim > /gatling/LatestSim.txt","aws s3 cp /gatling/LatestSim.txt s3://'"$BucketName"'/","aws s3 cp --recursive /gatling/results/$LatestSim/ s3://'"$BucketName"'/$LatestSim/"]}' \
-        --comment "console test" \
+        --parameters '{"workingDirectory":[""],"executionTimeout":["172800"],"commands":["aws s3 cp s3://'"$BucketName"'/LoadSimulation.scala /gatling/user-files/simulations","JAVA_OPTS=\"'"$JavaOpts"'\" /gatling/bin/gatling.sh -s \"ramp.LoadSimulation\" -m > /gatling/results/gatling.out","LatestSim=$(ls /gatling/results/ | sort | tail -n 1)","mv /gatling/results/gatling.out /gatling/results/$LatestSim/","echo $LatestSim > /gatling/LatestSim.txt","aws s3 cp /gatling/LatestSim.txt s3://'"$BucketName"'/","aws s3 cp --recursive /gatling/results/ s3://'"$BucketName"'/"]}' \
+        --comment "load test command" \
         --timeout-seconds 600 \
         --max-concurrency "50" \
         --max-errors "0" \
@@ -240,13 +235,11 @@ function runOnAWS() {
 # Main
 fileToArray
 
-while getopts ":b:c:hk:ln:prsv-:" opt; do
+while getopts ":b:hk:ln:prsv-:" opt; do
     case "$opt" in
         b )
             BucketName="$OPTARG"
             UseBucket=true;;
-        c )
-            Comment="$OPTARG";;
         h )
             usage
             exit 0;;
@@ -296,6 +289,7 @@ printSimulationResultsLocation
 
 #Improvements:
 ##HIGH PRIORITY
+###Add comment to gatling report (-rd)
 ###Use any region (requires a lambda fn)
 ###When uploading gatling to bucket, don't upload simulations or results
 ##MID PRIORITY
