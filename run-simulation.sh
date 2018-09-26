@@ -184,7 +184,7 @@ function runRemoteSimulation() {
         >/dev/null
     InstanceId=$(aws ec2 describe-instances \
                      --query "Reservations[*].Instances[0].InstanceId[]" \
-                     --filters "Name=tag-key,Values=aws:cloudformation:stack-name" "Name=tag-value,Values=ramping-load-test" \
+                     --filters "Name=tag-key,Values=aws:cloudformation:stack-name" "Name=tag-value,Values=$StackName" \
                      "Name=instance-state-name,Values=running" \
                      --output=text)
     JavaOpts=''
