@@ -50,7 +50,7 @@ function createBucket() {
         aws s3api put-bucket-policy \
             --bucket "$BucketName" \
             --policy "{ \"Version\":\"2012-10-17\", \"Statement\":[{ \"Sid\":\"PublicReadGetObject\", \"Effect\":\"Allow\", \"Principal\": \"*\", \"Action\":[\"s3:GetObject\"], \"Resource\":[\"arn:aws:s3:::$BucketName/*\" ] } ] }" \
-        >/dev/null
+            >/dev/null
     fi
 }
 
@@ -122,7 +122,7 @@ function runLocally() {
         vecho "Uploading results to $BucketName..."
         aws s3 mv NewSim.txt s3://"$BucketName"/ \
             >/dev/null
-        aws s3 cp --recursive gatling/results/ s3://"$BucketName"/ \
+        aws s3 sync gatling/results/"$NewSim"/ s3://"$BucketName"/"$NewSim" \
             >/dev/null
     fi
 }
@@ -142,9 +142,11 @@ function deleteStack() {
 
 function createStack() {
     vecho "Uploading setup files to $BucketName..."
-    aws s3 cp --recursive gatling/ s3://"$BucketName"/gatling/ \
-            --acl public-read \
-            >/dev/null
+    aws s3 sync gatling/ s3://"$BucketName"/gatling/ \
+        --exclude "gatling/results/*" \
+        --exclude "gatling/user-files/*" \
+        --acl public-read \
+        >/dev/null
     
     vecho "Creating stack $StackName..."
     aws cloudformation create-stack \
@@ -175,8 +177,8 @@ function runRemoteSimulation() {
     UseBucket=true
     vecho "Uploading simulation files to $BucketName..."
     aws s3 cp LoadSimulation.scala s3://"$BucketName" \
-            --acl public-read \
-            >/dev/null
+        --acl public-read \
+        >/dev/null
 
     UserName=$(aws iam get-user --query 'User.UserName' --output text)
     aws iam attach-user-policy \
@@ -210,10 +212,10 @@ function runRemoteSimulation() {
     #     echo "error" > /gatling/NewSim.txt
     # else
     #     mv /gatling/results/gatling.out /gatling/results/$NewSim/
-    #     aws s3 cp --recursive /gatling/results/$NewSim/ s3://$BucketName/$NewSim/
+    #     aws s3 sync /gatling/results/$NewSim/ s3://$BucketName/$NewSim/
     #     echo $NewSim > /gatling/NewSim.txt
     # fi
-    # aws s3 cp /gatling/NewSim.txt s3://$BucketName/
+    # aws s3 mv /gatling/NewSim.txt s3://$BucketName/
     aws ssm send-command \
         --document-name "AWS-RunShellScript" \
         --document-version "\$DEFAULT" \
@@ -233,10 +235,10 @@ function runRemoteSimulation() {
 " echo \"error\" > /gatling/NewSim.txt",
 "else",
 " mv /gatling/results/gatling.out /gatling/results/$NewSim/",
-" aws s3 cp --recursive /gatling/results/$NewSim/ s3://'"$BucketName"'/$NewSim/",
+" aws s3 sync /gatling/results/$NewSim/ s3://'"$BucketName"'/$NewSim/",
 " echo $NewSim > /gatling/NewSim.txt",
 "fi",
-"aws s3 cp /gatling/NewSim.txt s3://'"$BucketName"'/"
+"aws s3 mv /gatling/NewSim.txt s3://'"$BucketName"'/"
 ]}' \
         --comment "load test command" \
         --timeout-seconds 600 \
@@ -253,7 +255,7 @@ function runOnAWS() {
     fi
     createBucket
     createStack
-    runRemoteSimulation    
+    runRemoteSimulation
     if [ $SelfDestruct == true ]; then
         deleteStack
     fi
@@ -319,10 +321,8 @@ printSimulationResultsLocation
 ##HIGH PRIORITY
 ###Add comment to gatling report (-rd)
 ###Use any region (requires a lambda fn)
-###When uploading gatling to bucket, don't upload simulations or results
 ##MID PRIORITY
 ###Only create-stack if it doesn't exist
-###Only upload files that aren't already on bucket
 ###Better folder management in the bucket
 ###Don't repeat yourself
 ##LOW PRIORITY
