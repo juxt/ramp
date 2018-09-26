@@ -59,18 +59,23 @@ function printSimulationResultsLocation() {
         vecho "Waiting for simulation results..."
         aws s3api wait object-exists \
             --bucket "$BucketName" \
-            --key LatestSim.txt \
+            --key NewSim.txt \
             >/dev/null
-        aws s3 mv s3://"$BucketName"/LatestSim.txt LatestSim.txt \
+        aws s3 mv s3://"$BucketName"/NewSim.txt NewSim.txt \
             >/dev/null
-        LatestSim=$(<LatestSim.txt)
-        rm -f LatestSim.txt
-        echo "Simulation report: https://s3-eu-west-1.amazonaws.com/$BucketName/$LatestSim/index.html"
+        NewSim=$(<NewSim.txt)
+        rm -f NewSim.txt
+        if [ "$NewSim" == "error" ]; then
+            echo "Simulation failed!"
+            vecho "For debug purposes, command outputs should be available on $BucketName in a folder whose name is a UUID (a jumble of letters, dashes & numbers)"
+        else
+            echo "Simulation report: https://s3-eu-west-1.amazonaws.com/$BucketName/$NewSim/index.html"
+        fi
     else
         if [ $Verbose == false ]; then
             #If Verbose, gatling itself will print the report path
-            LatestSim=$(ls gatling/results/ | sort | tail -n 1)
-            echo "Simulation report: $PWD/gatling/results/$LatestSim/index.html"
+            NewSim=$(ls gatling/results/ | sort | tail -n 1)
+            echo "Simulation report: $PWD/gatling/results/$NewSim/index.html"
         fi
     fi
 }
@@ -112,10 +117,10 @@ function runLocally() {
 
     if [ $UseBucket == true ]; then
         createBucket
-        LatestSim=$(ls gatling/results/ | sort | tail -n 1)
-        echo "$LatestSim" > LatestSim.txt
+        NewSim=$(ls gatling/results/ | sort | tail -n 1)
+        echo "$NewSim" > NewSim.txt
         vecho "Uploading results to $BucketName..."
-        aws s3 mv LatestSim.txt s3://"$BucketName"/ \
+        aws s3 mv NewSim.txt s3://"$BucketName"/ \
             >/dev/null
         aws s3 cp --recursive gatling/results/ s3://"$BucketName"/ \
             >/dev/null
@@ -194,22 +199,45 @@ function runRemoteSimulation() {
         >/dev/null
 
     vecho "Running simulation on remote instance..."
-    # aws s3 cp s3://$BucketName/LoadSimulation.scala \
-    #     /gatling/user-files/simulations/
+    # With $BucketName and $JavaOpts from the outside:
+    # aws s3 cp s3://$BucketName/LoadSimulation.scala /gatling/user-files/simulations
+    # LastSim=$(ls /gatling/results/ | sort | tail -n 1)
     # JAVA_OPTS="$JavaOpts" /gatling/bin/gatling.sh \
     #          -s "ramp.LoadSimulation" \
-    #          -m \
-    #          > /gatling/results/gatling.out
-    # LatestSim=$(ls /gatling/results/ | sort | tail -n 1)
-    # mv /gatling/results/gatling.out /gatling/results/$LatestSim/
-    # echo $LatestSim > /gatling/LatestSim.txt
-    # aws s3 cp /gatling/LatestSim.txt s3://$BucketName/
-    # aws s3 cp --recursive /gatling/results/$LatestSim/ s3://$BucketName/$LatestSim/
+    #          -m > /gatling/results/gatling.out
+    # NewSim=$(ls /gatling/results/ | sort | tail -n 1)
+    # if [ "$LastSim" == "$NewSim" ]; then
+    #     echo "error" > /gatling/NewSim.txt
+    # else
+    #     mv /gatling/results/gatling.out /gatling/results/$NewSim/
+    #     aws s3 cp --recursive /gatling/results/$NewSim/ s3://$BucketName/$NewSim/
+    #     echo $NewSim > /gatling/NewSim.txt
+    # fi
+    # aws s3 cp /gatling/NewSim.txt s3://$BucketName/
     aws ssm send-command \
         --document-name "AWS-RunShellScript" \
         --document-version "\$DEFAULT" \
         --targets "Key=instanceids,Values=$InstanceId" \
-        --parameters '{"workingDirectory":[""],"executionTimeout":["172800"],"commands":["aws s3 cp s3://'"$BucketName"'/LoadSimulation.scala /gatling/user-files/simulations","JAVA_OPTS=\"'"$JavaOpts"'\" /gatling/bin/gatling.sh -s \"ramp.LoadSimulation\" -m > /gatling/results/gatling.out","LatestSim=$(ls /gatling/results/ | sort | tail -n 1)","mv /gatling/results/gatling.out /gatling/results/$LatestSim/","echo $LatestSim > /gatling/LatestSim.txt","aws s3 cp /gatling/LatestSim.txt s3://'"$BucketName"'/","aws s3 cp --recursive /gatling/results/ s3://'"$BucketName"'/"]}' \
+        --parameters '{
+"workingDirectory":[""],
+"executionTimeout":["172800"],
+"commands":[
+
+"aws s3 cp s3://'"$BucketName"'/LoadSimulation.scala /gatling/user-files/simulations",
+"LastSim=$(ls /gatling/results/ | sort | tail -n 1)",
+"JAVA_OPTS=\"'"$JavaOpts"'\" /gatling/bin/gatling.sh \\",
+" -s \"ramp.LoadSimulation\" \\",
+" -m > /gatling/results/gatling.out",
+"NewSim=$(ls /gatling/results/ | sort | tail -n 1)",
+"if [ \"$LastSim\" == \"$NewSim\" ]; then",
+" echo \"error\" > /gatling/NewSim.txt",
+"else",
+" mv /gatling/results/gatling.out /gatling/results/$NewSim/",
+" aws s3 cp --recursive /gatling/results/$NewSim/ s3://'"$BucketName"'/$NewSim/",
+" echo $NewSim > /gatling/NewSim.txt",
+"fi",
+"aws s3 cp /gatling/NewSim.txt s3://'"$BucketName"'/"
+]}' \
         --comment "load test command" \
         --timeout-seconds 600 \
         --max-concurrency "50" \
