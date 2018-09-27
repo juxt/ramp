@@ -57,7 +57,6 @@ function createBucket() {
 
 function printSimulationResultsLocation() {
     if [ $UseBucket == true ]; then
-        vecho "Waiting for simulation results..."
         aws s3api wait object-exists \
             --bucket "$BucketName" \
             --key NewSim.txt \
@@ -66,9 +65,9 @@ function printSimulationResultsLocation() {
             >/dev/null
         NewSim=$(<NewSim.txt)
         rm -f NewSim.txt
-        if [ "$NewSim" == "error" ]; then
+        if [ "$NewSim" == "error" ] && [ $Local == false ]; then
             echo "Simulation failed!"
-            vecho "For debug purposes, command outputs should be available on $BucketName in a folder whose name is a UUID (a jumble of letters, dashes & numbers)"
+            vecho "For debug purposes, command outputs should be available on bucket $BucketName in a folder whose name is a UUID (a jumble of letters, dashes & numbers)"
         else
             echo "Simulation report: https://s3-$Region.amazonaws.com/$BucketName/$NewSim/index.html"
         fi
@@ -121,7 +120,7 @@ function runLocally() {
         createBucket
         NewSim=$(ls gatling/results/ | sort | tail -n 1)
         echo "$NewSim" > NewSim.txt
-        vecho "Uploading results to $BucketName..."
+        vecho "Uploading results to bucket $BucketName..."
         aws s3 mv NewSim.txt s3://"$BucketName"/ \
             >/dev/null
         aws s3 sync gatling/results/"$NewSim"/ s3://"$BucketName"/"$NewSim" \
@@ -143,7 +142,7 @@ function deleteStack() {
 }
 
 function createStack() {
-    vecho "Uploading setup files to $BucketName..."
+    vecho "Uploading setup files to bucket $BucketName..."
     aws s3 sync gatling/ s3://"$BucketName"/gatling/ \
         --exclude "gatling/results/*" \
         --exclude "gatling/user-files/*" \
@@ -179,7 +178,7 @@ function createStack() {
 
 function runRemoteSimulation() {
     UseBucket=true
-    vecho "Uploading simulation files to $BucketName..."
+    vecho "Uploading simulation files to bucket $BucketName..."
     aws s3 cp LoadSimulation.scala s3://"$BucketName" \
         --acl public-read \
         >/dev/null
