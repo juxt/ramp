@@ -261,9 +261,6 @@ function runOnAWS() {
     createBucket
     createStack
     runRemoteSimulation
-    if [ $SelfDestruct == true ]; then
-        deleteStack
-    fi
 }
 
 ############################################
@@ -321,6 +318,9 @@ else
     runOnAWS
 fi
 printSimulationResultsLocation
+if [ $SelfDestruct == true ]; then
+    deleteStack
+fi
 
 #Improvements:
 ##HIGH PRIORITY
