@@ -7,7 +7,7 @@ ReplaceStack=false
 SelfDestruct=false
 StackName=ramping-load-test
 SSHKeyName=
-Region=eu-west-1
+Region=
 UseBucket=false
 Verbose=false
 declare -A SimParams=()
@@ -41,6 +41,7 @@ function createBucket() {
         vecho "Creating bucket $BucketName..."
         aws s3api create-bucket \
             --bucket "$BucketName" \
+            --region "$Region" \
             --create-bucket-configuration \
             LocationConstraint="$Region" \
             >/dev/null
@@ -69,7 +70,7 @@ function printSimulationResultsLocation() {
             echo "Simulation failed!"
             vecho "For debug purposes, command outputs should be available on $BucketName in a folder whose name is a UUID (a jumble of letters, dashes & numbers)"
         else
-            echo "Simulation report: https://s3-eu-west-1.amazonaws.com/$BucketName/$NewSim/index.html"
+            echo "Simulation report: https://s3-$Region.amazonaws.com/$BucketName/$NewSim/index.html"
         fi
     else
         if [ $Verbose == false ]; then
@@ -116,6 +117,7 @@ function runLocally() {
     fi
 
     if [ $UseBucket == true ]; then
+        Region=$(aws configure get region)
         createBucket
         NewSim=$(ls gatling/results/ | sort | tail -n 1)
         echo "$NewSim" > NewSim.txt
@@ -146,6 +148,8 @@ function createStack() {
         --exclude "gatling/results/*" \
         --exclude "gatling/user-files/*" \
         --acl public-read \
+        >/dev/null
+    aws s3 cp amilookup.zip s3://"$BucketName"/ \
         >/dev/null
     
     vecho "Creating stack $StackName..."
@@ -250,6 +254,7 @@ function runRemoteSimulation() {
 }
 
 function runOnAWS() {
+    Region=$(aws configure get region)
     if [ $ReplaceStack == true ]; then
         deleteStack
     fi
@@ -320,7 +325,6 @@ printSimulationResultsLocation
 #Improvements:
 ##HIGH PRIORITY
 ###Add comment to gatling report (-rd)
-###Use any region (requires a lambda fn)
 ##MID PRIORITY
 ###Only create-stack if it doesn't exist
 ###Better folder management in the bucket

@@ -8,7 +8,7 @@ It can be customised for more complex use cases.
 
 ## How to use
 
-. If you want to run your simulation remotely or upload the results to an S3 bucket, https://docs.aws.amazon.com/cli/latest/userguide/installing.html[install] and https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html[configure] the Amazon Command Line Interface. You may need to set your default region as `eu-west-1`.
+. If you want to run your simulation remotely or upload the results to an S3 bucket, https://docs.aws.amazon.com/cli/latest/userguide/installing.html[install] and https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html[configure] the Amazon Command Line Interface.
 
 . Call the `run-simulation.sh` script with any arguments you need.
 
@@ -39,5 +39,3 @@ If running remotely, be aware that by default *the stack will not be deleted aft
 * By default, the script merely sends GET requests to a target URL. But it can provide much more complex use cases if you replace `LoadSimulation.scala` with your own https://gatling.io/documentation/[Gatling simulation script].
 
 ** Currently, you have to use the same structure: name the file `LoadSimulation.scala`, the package `ramp`, and the Simulation class `LoadSimulation`. Beyond that, go wild.
-
-* Currently, the stack can only be created in `eu-west-1`. If you want to use a different region, you'll have to edit `aws-cft-ramp.yaml` to change the `ImageId` to an Amazon Linux AMI that's valid in the new region. You'll also have to change the `Region` variable at the top of `run-simulation.sh`

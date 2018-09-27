@@ -27,6 +27,38 @@ Resources:
           CidrIp: 0.0.0.0/0
           FromPort: '22'
           ToPort: '22'
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        -
+          PolicyName: "root"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "arn:aws:logs:*:*:*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "ec2:DescribeImages"
+                Resource: "*"
   LoadTestRole:
     Type: AWS::IAM::Role
     Properties:
@@ -60,18 +92,33 @@ Resources:
                   - "s3:DeleteObject"
                 Resource: !Join [ "", [ "arn:aws:s3:::", !Ref BucketName, "/*" ] ]
       RoleName: "LoadTestRole"
+  AMIInfoFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: !Ref BucketName
+        S3Key: amilookup.zip
+      Handler: amilookup.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Runtime: nodejs4.3
+      Timeout: 30
+  AMIInfo:
+    Type: Custom::AMIInfo
+    Properties:
+      ServiceToken: !GetAtt AMIInfoFunction.Arn
+      Region: !Ref AWS::Region
+      Architecture: HVM64
   InstanceProfile:
     DependsOn: LoadTestRole
     Type: AWS::IAM::InstanceProfile
     Properties:
       Roles:
         - "LoadTestRole"
-#        - "AmazonEC2RoleforSSM"
   TestBox:
     Type: AWS::EC2::Instance
     Properties:
       IamInstanceProfile: !Ref InstanceProfile
-      ImageId: ami-047bb4163c506cd98
+      ImageId: !GetAtt AMIInfo.Id
       InstanceInitiatedShutdownBehavior: terminate
       InstanceType: t2.large
       KeyName: !If [ HasKeyName, !Ref SSHKeyName, !Ref 'AWS::NoValue' ]
