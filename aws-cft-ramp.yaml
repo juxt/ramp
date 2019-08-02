@@ -91,7 +91,6 @@ Resources:
                   - "s3:GetObject"
                   - "s3:DeleteObject"
                 Resource: !Join [ "", [ "arn:aws:s3:::", !Ref BucketName, "/*" ] ]
-      RoleName: "LoadTestRole"
   AMIInfoFunction:
     Type: AWS::Lambda::Function
     Properties:
@@ -100,7 +99,7 @@ Resources:
         S3Key: amilookup.zip
       Handler: amilookup.handler
       Role: !GetAtt LambdaExecutionRole.Arn
-      Runtime: nodejs4.3
+      Runtime: nodejs8.10
       Timeout: 30
   AMIInfo:
     Type: Custom::AMIInfo
