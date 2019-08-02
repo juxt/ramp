@@ -1,11 +1,14 @@
 #!/bin/bash
 
-BucketName=ramp-load-test-$(uuidgen)
+RandUID=$(uuidgen | cut -c -8)
+
+BucketName=ramp-load-test-$RandUID
 BucketPublicRead=false
 Local=false
 ReplaceStack=false
 SelfDestruct=false
-StackName=ramping-load-test
+RemoveBucket=false
+StackName=ramping-load-test-$RandUID
 SSHKeyName=
 Region=
 UseBucket=false
@@ -23,6 +26,7 @@ Options:\n\
   -p            Public: give the results S3 bucket public-read permissions\n\
   -r            Replace: first delete any existing stack with the same name
   -s            Self-destruct: delete the stack once testing is complete\n\
+  -d            Delete bucket once testing is complete\n\
   -v            Verbose: prints details of the stack launch\n\
   --<string1> <string2> Pass the argument string1, with value string2, to the scala simulation script. The default script's supported parameters are TargetUrl, PeakUsers, and Duration."
 }
@@ -69,7 +73,10 @@ function printSimulationResultsLocation() {
             echo "Simulation failed!"
             vecho "For debug purposes, command outputs should be available on bucket $BucketName in a folder whose name is a UUID (a jumble of letters, dashes & numbers)"
         else
-            echo "Simulation report: https://s3-$Region.amazonaws.com/$BucketName/$NewSim/index.html"
+			echo 'Downloading results into results-'$RandUID'...'
+			aws s3 sync --quiet s3://"$BucketName"/$NewSim results-$RandUID
+			aws s3 cp --quiet s3://"$BucketName"/gatling.out results-$RandUID/
+			aws s3 cp --quiet s3://"$BucketName"/gatling.err results-$RandUID/
         fi
     else
         if [ $Verbose == false ]; then
@@ -141,6 +148,11 @@ function deleteStack() {
         >/dev/null
 }
 
+function deleteBucket() {
+    vecho "Deleting Bucket $BucketName..."
+	aws s3 rb s3://$BucketName --force >/dev/null
+}
+
 function createStack() {
     vecho "Uploading setup files to bucket $BucketName..."
     aws s3 sync gatling/ s3://"$BucketName"/gatling/ \
@@ -152,7 +164,9 @@ function createStack() {
         >/dev/null
     
     vecho "Creating stack $StackName..."
+	sed -i -r 's/LoadTestSG[0-9]*/LoadTestSG'$RANDOM'/g' aws-cft-ramp.yaml
     aws cloudformation create-stack \
+	    --disable-rollback \
         --stack-name "$StackName" \
         --region "$Region" \
         --template-body file://aws-cft-ramp.yaml \
@@ -172,6 +186,8 @@ function createStack() {
                       --output text)
     if [ "$StackStatus" != CREATE_COMPLETE ]; then
         echo "Stack creation failed!"
+		aws cloudformation describe-stack-events --stack-name $StackName | egrep "(EventId|ResourceStatus|ResourceStatusReason)"
+		deleteStack
         exit 1
     fi
 }
@@ -219,6 +235,7 @@ function runRemoteSimulation() {
     #     echo $NewSim > /gatling/NewSim.txt
     # fi
     # aws s3 mv /gatling/NewSim.txt s3://$BucketName/
+	COMMANDID=$(
     aws ssm send-command \
         --document-name "AWS-RunShellScript" \
         --document-version "\$DEFAULT" \
@@ -232,13 +249,15 @@ function runRemoteSimulation() {
 "LastSim=$(ls /gatling/results/ | sort | tail -n 1)",
 "JAVA_OPTS=\"'"$JavaOpts"'\" /gatling/bin/gatling.sh \\",
 " -s \"ramp.LoadSimulation\" \\",
-" -m > /gatling/results/gatling.out",
+" -m > /gatling/results/gatling.out 2> /gatling/results/gatling.err",
 "NewSim=$(ls /gatling/results/ | sort | tail -n 1)",
 "if [ \"$LastSim\" == \"$NewSim\" ]; then",
 " echo \"error\" > /gatling/NewSim.txt",
 "else",
 " mv /gatling/results/gatling.out /gatling/results/$NewSim/",
 " aws s3 sync /gatling/results/$NewSim/ s3://'"$BucketName"'/$NewSim/",
+" aws s3 cp /gatling/results/gatling.out s3://'"$BucketName"'/",
+" aws s3 cp /gatling/results/gatling.err s3://'"$BucketName"'/",
 " echo $NewSim > /gatling/NewSim.txt",
 "fi",
 "aws s3 mv /gatling/NewSim.txt s3://'"$BucketName"'/"
@@ -249,7 +268,18 @@ function runRemoteSimulation() {
         --max-errors "0" \
         --output-s3-bucket-name "$BucketName" \
         --region "$Region" \
-        >/dev/null
+		--query Command.CommandId \
+        --output text 2>&1
+		)
+
+	while true; do
+        finished=0
+        STATUS=$( aws ssm get-command-invocation --command-id $COMMANDID --instance-id $InstanceId --query Status --output text | tr '[A-Z]' '[a-z]' )
+        NOW=$( date +%Y-%m-%dT%H:%M:%S%z )
+        echo $NOW $instance: $STATUS
+		[ "$STATUS" == "success" ] && break
+        sleep 60
+    done
 }
 
 function runOnAWS() {
@@ -266,7 +296,7 @@ function runOnAWS() {
 # Main
 fileToArray
 
-while getopts ":b:hk:ln:prsv-:" opt; do
+while getopts ":b:hk:ln:prsdv-:" opt; do
     case "$opt" in
         b )
             BucketName="$OPTARG"
@@ -286,6 +316,8 @@ while getopts ":b:hk:ln:prsv-:" opt; do
             ReplaceStack=true;;
         s )
             SelfDestruct=true;;
+        d )
+            RemoveBucket=true;;
         v )
             Verbose=true;;
         - )
@@ -319,6 +351,9 @@ fi
 printSimulationResultsLocation
 if [ $SelfDestruct == true ]; then
     deleteStack
+fi
+if [ $RemoveBucket == true ]; then
+    deleteBucket
 fi
 
 #Improvements:
